@@ -1,128 +1,78 @@
-import React, { useState } from 'react';
-import { AppBar, Toolbar, Typography, Box, Link, Button, IconButton, Menu, MenuItem, useTheme, useMediaQuery } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import React from 'react';
+import { AppBar, Toolbar, Typography, Button, Stack } from '@mui/material';
 import SpaIcon from '@mui/icons-material/Spa';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
-  const [anchorEl, setAnchorEl] = useState(null);
-  const theme = useTheme();
-  
-  // Detects if the screen size is smaller than 'md' (tablet/mobile)
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
+  const handleNavigation = (id) => {
+    // If user is not on the landing page, navigate home first
+    if (location.pathname !== '/') {
+      navigate('/');
+      // Wait a split second for the DOM to render, then scroll
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element) element.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      // If already home, just smooth scroll
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const navLinks = [
-    { label: 'Home', href: '#home-section' },
-    { label: 'How it Works', href: '#how-it-works-section' },
-    { label: 'Metrics', href: '#metrics-section' },
-  ];
 
   return (
     <AppBar 
       position="fixed" 
-      elevation={0} 
       sx={{ 
-        backgroundColor: 'rgba(255, 255, 255, 0.8)', 
-        backdropFilter: 'blur(10px)', 
-        borderBottom: '1px solid #e5e7eb',
-        color: 'text.primary' // Ensures icons match text color defaults
+        background: 'rgba(255, 255, 255, 0.7)', 
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.05)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.3)',
       }}
     >
       <Toolbar sx={{ justifyContent: 'space-between', maxWidth: 'lg', width: '100%', mx: 'auto' }}>
-        
-        {/* LOGO */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <SpaIcon sx={{ color: '#10b981', mr: 1 }} />
-          <Typography variant="h6" fontWeight="bold" color="text.primary">
-            PlantCareAI
+        {/* Brand Logo */}
+        <Stack 
+          direction="row" 
+          spacing={1} 
+          alignItems="center" 
+          sx={{ cursor: 'pointer' }} 
+          onClick={() => handleNavigation('home-section')}
+        >
+          <SpaIcon sx={{ color: '#2e7d32', fontSize: 28 }} />
+          <Typography variant="h6" sx={{ fontWeight: 800, background: 'linear-gradient(45deg, #1b5e20, #4caf50)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            KrishiMitra AI
           </Typography>
-        </Box>
+        </Stack>
 
-        {/* CONDITIONAL NAVIGATION */}
-        {isMobile ? (
-          // --- MOBILE VIEW: Hamburger Menu ---
-          <Box>
-            <IconButton edge="start" aria-label="menu" onClick={handleMenuOpen}>
-              <MenuIcon />
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-              keepMounted
-              sx={{ '& .MuiPaper-root': { width: '220px', mt: 1, borderRadius: 2 } }}
-            >
-              {navLinks.map((link) => (
-                <MenuItem 
-                  key={link.label} 
-                  component="a" 
-                  href={link.href} 
-                  onClick={handleMenuClose}
-                  sx={{ 
-                    color: 'text.secondary', 
-                    textDecoration: 'none',
-                    fontWeight: 500,
-                    py: 1.5,
-                    '&:hover': { color: '#10b981' } 
-                  }}
-                >
-                  {link.label}
-                </MenuItem>
-              ))}
-              <Box sx={{ p: 1.5 }}>
-                <Button 
-                  variant="contained" 
-                  fullWidth 
-                  sx={{ 
-                    backgroundColor: '#111827', 
-                    borderRadius: 3, 
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    '&:hover': { backgroundColor: '#1f2937' }
-                  }}
-                >
-                  Launch App
-                </Button>
-              </Box>
-            </Menu>
-          </Box>
-        ) : (
-          // --- DESKTOP VIEW: Horizontal Links ---
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {navLinks.map((link) => (
-              <Link 
-                key={link.label} 
-                href={link.href} 
-                underline="none" 
-                color="text.secondary" 
-                sx={{ fontWeight: 500, '&:hover': { color: '#10b981' } }}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <Button 
-              variant="contained" 
-              sx={{ 
-                backgroundColor: '#111827', 
-                borderRadius: 4, 
-                px: 3, 
-                textTransform: 'none', 
-                fontWeight: 600,
-                '&:hover': { backgroundColor: '#1f2937' } 
-              }}
-            >
-              Launch App
-            </Button>
-          </Box>
-        )}
-
+        {/* Links and Actions */}
+        <Stack direction="row" spacing={3} alignItems="center">
+          <Button onClick={() => handleNavigation('home-section')} sx={{ color: '#334155', fontWeight: 600 }}>Home</Button>
+          <Button onClick={() => handleNavigation('demo-section')} sx={{ color: '#334155', fontWeight: 600 }}>Live Scanner</Button>
+          <Button onClick={() => handleNavigation('metrics-section')} sx={{ color: '#334155', fontWeight: 600 }}>Metrics</Button>
+          
+          {/* Action Button: Sign In / Access App */}
+          <Button 
+            variant="contained" 
+            onClick={() => navigate('/login')} // Redirects to our clean /login route
+            sx={{ 
+              backgroundColor: '#2e7d32', 
+              fontWeight: 700,
+              borderRadius: 3,
+              px: 3,
+              textTransform: 'none',
+              boxShadow: '0 4px 14px rgba(46, 125, 50, 0.3)',
+              '&:hover': { backgroundColor: '#1b5e20' }
+            }}
+          >
+            Sign In
+          </Button>
+        </Stack>
       </Toolbar>
     </AppBar>
   );

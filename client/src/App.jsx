@@ -3,12 +3,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme, responsiveFontSizes } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import LandingPage from './page/LandingPage';
+import AuthPage from './page/AuthPage'; // Added import
 import './App.css';
 
 // 1. Create your base Material UI theme
 let theme = createTheme({
   typography: {
-    // You can customize your global font family here if needed
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
   },
 });
@@ -25,7 +25,13 @@ function App() {
       
       <Router>
         <Routes>
+          {/* Main Landing Route */}
           <Route path="/" element={<LandingPage />} />
+          
+          {/* Authentication Routes */}
+          <Route path="/login" element={<AuthPage initialMode="login" />} />
+          <Route path="/signup" element={<AuthPage initialMode="signup" />} />
+          
           {/* Add future routes like /dashboard or /upload here */}
         </Routes>
       </Router>

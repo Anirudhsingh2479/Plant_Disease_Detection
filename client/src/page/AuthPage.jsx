@@ -1,0 +1,165 @@
+import React, { useState, useEffect } from 'react';
+import { Box, Paper, TextField, Button, Typography, Stack, Checkbox, FormControlLabel } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useNavigate } from 'react-router-dom';
+
+const AuthPage = ({ initialMode = "login" }) => {
+  const navigate = useNavigate();
+  const [isSignUp, setIsSignUp] = useState(initialMode === "signup");
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  
+  // Controls whether the password is dots or text
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    setIsSignUp(initialMode === "signup");
+    setFormData({ name: '', email: '', password: '' });
+    setShowPassword(false);
+  }, [initialMode]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Submitting:", isSignUp ? "Sign Up" : "Login", formData);
+  };
+
+  return (
+    <Box 
+      sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        p: 2,
+        background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+        position: 'relative'
+      }}
+    >
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate('/')}
+        sx={{ position: 'absolute', top: 24, left: 24, color: '#2e7d32', fontWeight: 700 }}
+      >
+        Back to Home
+      </Button>
+
+      <Paper 
+        elevation={0}
+        sx={{ 
+          maxWidth: 420, 
+          width: '100%', 
+          p: 4, 
+          borderRadius: 6,
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.5)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.05)',
+          textAlign: 'center'
+        }}
+      >
+        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, color: '#1e293b' }}>
+          {isSignUp ? "Create Account" : "Welcome Back"}
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#64748b', mb: 4 }}>
+          {isSignUp ? "Join us to save your crop history updates" : "Access your local plant remedy tracking dashboard"}
+        </Typography>
+
+        <form onSubmit={handleSubmit}>
+          <Stack spacing={2.5}>
+            {isSignUp && (
+              <TextField
+                label="Full Name"
+                name="name"
+                variant="outlined"
+                fullWidth
+                required
+                value={formData.name}
+                onChange={handleChange}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+              />
+            )}
+            
+            <TextField
+              label="Email Address"
+              name="email"
+              type="email"
+              variant="outlined"
+              fullWidth
+              required
+              value={formData.email}
+              onChange={handleChange}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+            />
+            
+            {/* CLEAN PASSWORD FIELD (No Adornments) */}
+            <TextField
+              label="Password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              variant="outlined"
+              fullWidth
+              required
+              value={formData.password}
+              onChange={handleChange}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+            />
+
+            {/* THE FOOLPROOF SOLUTION: A simple checkbox right below the password field */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: -1.5 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={showPassword} 
+                    onChange={(e) => setShowPassword(e.target.checked)} 
+                    sx={{
+                      color: '#2e7d32',
+                      '&.Mui-checked': { color: '#2e7d32' },
+                    }}
+                  />
+                }
+                label={<Typography variant="body2" sx={{ color: '#64748b' }}>Show Password</Typography>}
+              />
+            </Box>
+
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              sx={{
+                backgroundColor: '#2e7d32',
+                py: 1.5,
+                borderRadius: 3,
+                fontWeight: 700,
+                fontSize: '1rem',
+                textTransform: 'none',
+                boxShadow: '0 4px 14px rgba(46, 125, 50, 0.3)',
+                '&:hover': { backgroundColor: '#1b5e20' }
+              }}
+            >
+              {isSignUp ? "Sign Up" : "Sign In"}
+            </Button>
+          </Stack>
+        </form>
+
+        <Typography variant="body2" sx={{ color: '#64748b', mt: 4 }}>
+          {isSignUp ? "Already have an account? " : "New to KrishiMitra? "}
+          <span 
+            onClick={() => {
+              setFormData({ name: '', email: '', password: '' });
+              setIsSignUp(!isSignUp);
+              navigate(isSignUp ? '/login' : '/signup');
+            }} 
+            style={{ color: '#2e7d32', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            {isSignUp ? "Sign In" : "Create one"}
+          </span>
+        </Typography>
+      </Paper>
+    </Box>
+  );
+};
+
+export default AuthPage;
