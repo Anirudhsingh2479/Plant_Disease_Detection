@@ -5,6 +5,8 @@ import CssBaseline from '@mui/material/CssBaseline';
 import LandingPage from './page/LandingPage';
 import AuthPage from './page/AuthPage'; // Added import
 import './App.css';
+import ProtectedRoute from './components/ProtectedRoute';
+import DashboardPage from './page/DashboardPage'; // Added import
 
 // 1. Create your base Material UI theme
 let theme = createTheme({
@@ -31,6 +33,16 @@ function App() {
           {/* Authentication Routes */}
           <Route path="/login" element={<AuthPage initialMode="login" />} />
           <Route path="/signup" element={<AuthPage initialMode="signup" />} />
+
+          {/* Protected Dashboard Route */}
+          <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } 
+/>
           
           {/* Add future routes like /dashboard or /upload here */}
         </Routes>
