@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Paper, TextField, Button, Typography, Stack, Checkbox, FormControlLabel } from '@mui/material';
+import { Box, Paper, TextField, Button, Typography, Stack, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser, loginUser } from '../redux/slices/authSlice.js'; // Ensure path is correct
 
 const AuthPage = ({ initialMode = "login" }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { isLoading, error, token } = useSelector((state) => state.auth || {});
   const [isSignUp, setIsSignUp] = useState(initialMode === "signup");
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
-  
-  // Controls whether the password is dots or text
   const [showPassword, setShowPassword] = useState(false);
+
+  // If token exists, user is logged in, send to home
+  useEffect(() => {
+    if(token){
+      navigate('/dashboard');
+    }
+  }, [token, navigate]);
 
   useEffect(() => {
     setIsSignUp(initialMode === "signup");
@@ -21,12 +30,49 @@ const AuthPage = ({ initialMode = "login" }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting:", isSignUp ? "Sign Up" : "Login", formData);
+
+    console.log("Form Data submitted:", formData);
+    if(isSignUp){
+      try {
+        // Use .unwrap() to catch the success directly in the component
+        await dispatch(registerUser({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        })).unwrap();
+        
+        // On success: clear form, switch to login mode, and navigate
+        setFormData({ name: '', email: '', password: '' });
+        setIsSignUp(false);
+        navigate('/login');
+        
+      } catch (err) {
+        // Errors are already handled by Redux state, but you can add local logic here if needed
+        console.error("Signup failed", err);
+      }
+    }
+    else {
+      // UPDATED LOGIN LOGIC
+      try {
+        const result = await dispatch(loginUser({
+          email: formData.email,
+          password: formData.password,
+        })).unwrap();
+        
+        // Console log to see EXACTLY what the backend sent back
+        console.log("Login Success Result:", result); 
+        
+        // Force navigation to home immediately upon success
+        navigate('/dashboard');
+      } catch (err) {
+        console.error("Login failed:", err);
+      }
+    }
   };
 
-  return (
+ return (
     <Box 
       sx={{ 
         minHeight: '100vh', 
@@ -73,6 +119,7 @@ const AuthPage = ({ initialMode = "login" }) => {
               <TextField
                 label="Full Name"
                 name="name"
+                autoComplete="name"
                 variant="outlined"
                 fullWidth
                 required
@@ -86,6 +133,7 @@ const AuthPage = ({ initialMode = "login" }) => {
               label="Email Address"
               name="email"
               type="email"
+              autoComplete="email"
               variant="outlined"
               fullWidth
               required
@@ -94,11 +142,11 @@ const AuthPage = ({ initialMode = "login" }) => {
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             />
             
-            {/* CLEAN PASSWORD FIELD (No Adornments) */}
             <TextField
               label="Password"
               name="password"
               type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
               variant="outlined"
               fullWidth
               required
@@ -107,7 +155,6 @@ const AuthPage = ({ initialMode = "login" }) => {
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             />
 
-            {/* THE FOOLPROOF SOLUTION: A simple checkbox right below the password field */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: -1.5 }}>
               <FormControlLabel
                 control={
@@ -124,10 +171,18 @@ const AuthPage = ({ initialMode = "login" }) => {
               />
             </Box>
 
+            {/* 4. Display Redux Errors gracefully */}
+            {error && (
+              <Typography color="error" variant="body2" sx={{ textAlign: 'left', mt: -1 }}>
+                {error}
+              </Typography>
+            )}
+
             <Button
               type="submit"
               variant="contained"
               fullWidth
+              disabled={isLoading} // Disable while loading
               sx={{
                 backgroundColor: '#2e7d32',
                 py: 1.5,
@@ -139,7 +194,8 @@ const AuthPage = ({ initialMode = "login" }) => {
                 '&:hover': { backgroundColor: '#1b5e20' }
               }}
             >
-              {isSignUp ? "Sign Up" : "Sign In"}
+              {/* 5. Show Spinner or Text based on loading state */}
+              {isLoading ? <CircularProgress size={24} color="inherit" /> : (isSignUp ? "Sign Up" : "Sign In")}
             </Button>
           </Stack>
         </form>
