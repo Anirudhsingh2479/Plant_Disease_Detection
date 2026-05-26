@@ -32,22 +32,81 @@ const signup = async (req, res) => {
   }
 };
 
+// const verifyEmail = async (req, res) => {
+//   try {
+//     const { token } = req.params; //Extracts token from URL parameter.
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+//     const user = await User.findById(decoded.userId);
+//     if (!user) return res.status(400).json({ message: 'Invalid token or user does not exist' });
+//     if (user.isVerified) return res.status(400).json({ message: 'User is already verified' });
+
+//     user.isVerified = true; //Updates verification status.
+//     await user.save();//saves the updated user to the database.
+
+//     // Redirect to your React login page
+//     res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?verified=true`);
+//   } catch (error) {
+//     res.status(400).json({ message: 'Token is invalid or has expired.' });
+//   }
+// };
+// const verifyEmail = async (req, res) => {
+//   try {
+//     const { token } = req.params; 
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+//     const user = await User.findById(decoded.userId);
+    
+//     // Redirect if user doesn't exist
+//     if (!user) {
+//         return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/signup?error=notfound`);
+//     }
+    
+//     // Redirect if already verified
+//     if (user.isVerified) {
+//         return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=alreadyverified`);
+//     }
+
+//     user.isVerified = true; 
+//     await user.save(); 
+
+//     // Success! Redirect to login page
+//     res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?verified=true`);
+
+//   } catch (error) {
+//     // If JWT fails/expires, it throws an error and lands here. Redirect to frontend with an error param.
+//     res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=expired`);
+//   }
+// };
+
 const verifyEmail = async (req, res) => {
   try {
-    const { token } = req.params; //Extracts token from URL parameter.
+    const { token } = req.params; 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // 1. Find the user
     const user = await User.findById(decoded.userId);
-    if (!user) return res.status(400).json({ message: 'Invalid token or user does not exist' });
-    if (user.isVerified) return res.status(400).json({ message: 'User is already verified' });
+    
+    if (!user) {
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/signup?error=notfound`);
+    }
+    
+    if (user.isVerified) {
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=alreadyverified`);
+    }
 
-    user.isVerified = true; //Updates verification status.
-    await user.save();//saves the updated user to the database.
+    // 2. THE BULLETPROOF FIX: Force the database to update directly
+    await User.findByIdAndUpdate(decoded.userId, { isVerified: true }); 
+    
+    console.log(`Success: User ${user.email} is now verified!`); // Check your terminal for this!
 
-    // Redirect to your React login page
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/login?verified=true`);
+    // 3. Redirect to login
+    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?verified=true`);
+
   } catch (error) {
-    res.status(400).json({ message: 'Token is invalid or has expired.' });
+    // 4. PRINT THE ERROR so you aren't debugging blind!
+    console.error("VERIFICATION ERROR:", error); 
+    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=expired`);
   }
 };
 
