@@ -7,7 +7,6 @@ export const loginUser = createAsyncThunk(
         try {
             // FIXED: response spelling
             const response = await axiosInstance.post('/auth/login', credentials);
-            localStorage.setItem('token', response.data.result.token);
             return response.data;
         } catch(error) {
             return rejectWithValue(error.response?.data?.message || 'Login Failed');
@@ -34,7 +33,7 @@ const authSlice = createSlice({
     // FIXED: initialState spelling
     initialState: {
         user: null,
-        token: localStorage.getItem('token') || null,
+        token: null,
         isLoading: false,
         error: null,
     },
@@ -43,7 +42,7 @@ const authSlice = createSlice({
             state.user = null;
             state.token = null;
             state.error = null;
-            localStorage.removeItem('token');
+            axiosInstance.post('/auth/logout').catch(() => {});
         },
     },
     extraReducers: (builder) => {

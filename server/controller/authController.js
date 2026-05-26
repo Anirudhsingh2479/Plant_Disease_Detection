@@ -75,10 +75,18 @@ const login = async (req, res) => {
     });
     //Stores JWT inside browser cookie.
 
-    res.status(200).json({ result: user, message: 'Logged in successfully' });
+    res.status(200).json({ result: { user, token }, message: 'Logged in successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error during login', error: error.message });
   }
 };
 
-module.exports = { signup, verifyEmail, login };
+const logout = (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+  });
+  res.status(200).json({ message: 'Logged out successfully' });
+};
+
+module.exports = { signup, verifyEmail, login, logout };
