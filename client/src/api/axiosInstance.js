@@ -9,14 +9,6 @@ const axiosInstance = axios.create({
     withCredentials: true
 });
 
-axiosInstance.interceptors.request.use((config)=>{
-    // with the help of interceptor
-    // Frontend → Interceptor runs → Token attached → Request sent
-    const token =localStorage.getItem('token');
-    if(token){
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
+// Cookies are sent automatically with every request because withCredentials: true is set above.
 
 export default axiosInstance;

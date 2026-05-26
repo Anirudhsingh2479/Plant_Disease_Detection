@@ -1,16 +1,12 @@
 const jwt= require('jsonwebtoken');
 const requireAuth = (req,res,next) =>{
-    const authHeader = req.headers.authorization;// checks for the presence of the Authorization header in the incoming request. 
-                                                 // This header typically contains the JWT token in the format
-    if(!authHeader || !authHeader.startsWith('Bearer')){
+    const token = req.cookies?.token;
+
+    if(!token){
         return res.status(410).json({success: false, 
             message: "Please login or signup to get your plant's diagnosis!"
         });
     }
-    const token = authHeader.split(' ')[1]; 
-         // extracts the token part from the header by
-         //   splitting the string at the space character and taking the second element of the resulting array (index 1).
-         //arr[0] will be "Bearer" and arr[1] will be the actual token.
 
     try{
 
