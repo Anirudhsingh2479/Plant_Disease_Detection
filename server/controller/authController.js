@@ -3,6 +3,25 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sendVerificationEmail } = require('../utils/sendEmail');
 
+const buildAuthResponse = (user) => {
+  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  const userObject = user.toObject();
+  delete userObject.password;
+
+  return {
+    token,
+    user: userObject,
+  };
+};
+
+const setAuthCookie = (res, token) => {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+};
+
 const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -24,9 +43,14 @@ const signup = async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    await sendVerificationEmail(newUser.email, verificationToken);
-
-    res.status(201).json({ message: 'Signup successful! Please check your email to verify your account.' });
+    try {
+      await sendVerificationEmail(newUser.email, verificationToken);
+      res.status(201).json({ message: 'Signup successful! Please check your email to verify your account.' });
+    } catch (emailError) {
+      // Email sending failed - delete the created user
+      await User.findByIdAndDelete(newUser._id);
+      return res.status(500).json({ message: 'Signup failed: ' + emailError.message });
+    }
   } catch (error) {
     res.status(500).json({ message: 'Server error during signup', error: error.message });
   }
@@ -81,32 +105,29 @@ const signup = async (req, res) => {
 
 const verifyEmail = async (req, res) => {
   try {
-    const { token } = req.params; 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const { token } = req.params; //Extracts token from URL parameter.
+    // URL decode the token to restore special characters
+    const decodedToken = decodeURIComponent(token);
+    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
 
     // 1. Find the user
     const user = await User.findById(decoded.userId);
-    
-    if (!user) {
-        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/signup?error=notfound`);
-    }
-    
-    if (user.isVerified) {
-        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=alreadyverified`);
+    if (!user) return res.status(400).json({ message: 'Invalid token or user does not exist' });
+    const wasVerified = user.isVerified;
+    if (!user.isVerified) {
+      user.isVerified = true; //Updates verification status.
+      await user.save();//saves the updated user to the database.
     }
 
-    // 2. THE BULLETPROOF FIX: Force the database to update directly
-    await User.findByIdAndUpdate(decoded.userId, { isVerified: true }); 
-    
-    console.log(`Success: User ${user.email} is now verified!`); // Check your terminal for this!
+    const authPayload = buildAuthResponse(user);
+    setAuthCookie(res, authPayload.token);
 
-    // 3. Redirect to login
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?verified=true`);
-
-  } catch (error) {
-    // 4. PRINT THE ERROR so you aren't debugging blind!
-    console.error("VERIFICATION ERROR:", error); 
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=expired`);
+    res.status(200).json({
+      result: authPayload,
+      message: wasVerified ? 'Email is already verified' : 'Email verified successfully',
+    });
+  } catch {
+    res.status(400).json({ message: 'Token is invalid or has expired.' });
   }
 };
 
@@ -124,17 +145,12 @@ const login = async (req, res) => {
 
     if (!isPasswordCorrect) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const authPayload = buildAuthResponse(user);
 
-    // Using your secure cookie-parser setup!
-    res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    setAuthCookie(res, authPayload.token);
     //Stores JWT inside browser cookie.
 
-    res.status(200).json({ result: { user, token }, message: 'Logged in successfully' });
+    res.status(200).json({ result: authPayload, message: 'Logged in successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error during login', error: error.message });
   }

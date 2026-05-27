@@ -9,8 +9,17 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const getClientBaseUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
+
 const sendVerificationEmail = async (userEmail, token) => {
-  const verificationLink = `http://localhost:${process.env.PORT || 5000}/api/auth/verify/${token}`;
+  // Check if email credentials are configured
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error('Email service not configured. Missing EMAIL_USER or EMAIL_PASS in environment variables.');
+  }
+
+  // URL encode the token to preserve special characters
+  const encodedToken = encodeURIComponent(token);
+  const verificationLink = `${getClientBaseUrl()}/verify-email?token=${encodedToken}`;
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -27,8 +36,10 @@ const sendVerificationEmail = async (userEmail, token) => {
   try {
     await transporter.sendMail(mailOptions);
     console.log('Verification email sent to:', userEmail);
+    return true;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending email to', userEmail, ':', error.message);
+    throw new Error(`Failed to send verification email: ${error.message}`);
   }
 };
 

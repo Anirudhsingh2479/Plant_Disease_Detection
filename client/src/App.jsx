@@ -1,9 +1,9 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme, responsiveFontSizes } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import LandingPage from './page/LandingPage';
 import AuthPage from './page/AuthPage'; // Added import
+import VerifyEmailPage from './page/VerifyEmailPage';
 import './App.css';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardPage from './page/DashboardPage'; // Added import
@@ -33,16 +33,17 @@ function App() {
           {/* Authentication Routes */}
           <Route path="/login" element={<AuthPage initialMode="login" />} />
           <Route path="/signup" element={<AuthPage initialMode="signup" />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
 
           {/* Protected Dashboard Route */}
-          <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              } 
-/>
+          <Route
+            path="/dashboard"
+            element={(
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            )}
+          />
           
           {/* Add future routes like /dashboard or /upload here */}
         </Routes>
