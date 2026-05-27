@@ -47,6 +47,9 @@ app.use(
 
 // Health Check Route
 app.get(`/`, (req, res) => {
+
+
+
   res.status(HTTPSTATUS.OK).json({
     message: "Piss Off, You Anirudh.", 
     status: "ok",

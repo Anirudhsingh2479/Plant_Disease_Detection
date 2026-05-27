@@ -18,6 +18,7 @@ const requireAuth = (req,res,next) =>{
         // This allows subsequent middleware or route handlers to access the authenticated user's information.
         next();
     } catch(error){
+        console.error("Authentication error:", error);
         return res.status(401).json({
             success:false,
             message: "Session expired. Please login again"

@@ -1,6 +1,30 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axiosInstance from '../../api/axiosInstance'; // Ensure path is correct
 
+const AUTH_STORAGE_KEY = 'authState';
+
+const loadPersistedAuthState = () => {
+    try {
+        const persistedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+
+        if (!persistedAuth) {
+            return { user: null, token: null };
+        }
+
+        const parsedAuth = JSON.parse(persistedAuth);
+
+        return {
+            user: parsedAuth.user || null,
+            token: parsedAuth.token || null,
+        };
+    } catch {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        return { user: null, token: null };
+    }
+};
+
+const persistedAuthState = loadPersistedAuthState();
+
 export const loginUser = createAsyncThunk(
     'auth/loginUser', 
     async (credentials, { rejectWithValue }) => {
@@ -28,12 +52,24 @@ export const registerUser = createAsyncThunk(
     }
 );
 
+export const verifyEmailToken = createAsyncThunk(
+    'auth/verifyEmailToken',
+    async (token, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.get(`/auth/verify/${encodeURIComponent(token)}`);
+            return response.data;
+        } catch(error) {
+            return rejectWithValue(error.response?.data?.message || 'Email verification failed');
+        }
+    }
+);
+
 const authSlice = createSlice({
     name: 'auth',
     // FIXED: initialState spelling
     initialState: {
-        user: null,
-        token: null,
+        user: persistedAuthState.user,
+        token: persistedAuthState.token,
         isLoading: false,
         error: null,
     },
@@ -68,7 +104,7 @@ const authSlice = createSlice({
             state.isLoading = true;
             state.error = null;
         })
-        .addCase(registerUser.fulfilled, (state, action) => {
+        .addCase(registerUser.fulfilled, (state) => {
             state.isLoading = false;
             // Note: We are NOT setting state.token here, because we want 
             // them to navigate to the login page first.
@@ -76,6 +112,19 @@ const authSlice = createSlice({
         .addCase(registerUser.rejected, (state, action) => {
             state.isLoading = false;
             state.error = action.payload || 'Registration Failed';
+        })
+        .addCase(verifyEmailToken.pending, (state) => {
+            state.isLoading = true;
+            state.error = null;
+        })
+        .addCase(verifyEmailToken.fulfilled, (state, action) => {
+            state.isLoading = false;
+            state.user = action.payload.result.user;
+            state.token = action.payload.result.token;
+        })
+        .addCase(verifyEmailToken.rejected, (state, action) => {
+            state.isLoading = false;
+            state.error = action.payload || 'Email verification failed';
         });
     },
 });
