@@ -1,11 +1,18 @@
 const Diagnosis= require('../models/Diagnosis');
 
+const getAuthenticatedUserId = (req) => req.user?.userId || req.user?._id;
+
 const saveDiagnosis = async (req,res) =>{
     try{
         const {imageurl,diseaseName,confidence} = req.body;
+        const userId = getAuthenticatedUserId(req);
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
 
         const newDiagnosis = new Diagnosis({
-            user: req.user._id,
+            user: userId,
             imageUrl: imageurl,
             diseaseName,
             confidence,
@@ -20,7 +27,12 @@ const saveDiagnosis = async (req,res) =>{
 
 const getUserHistory = async (req, res) => {
     try {
-        const history = await Diagnosis.find({ user: req.user._id }).sort({ createdAt: -1 });
+        const userId = getAuthenticatedUserId(req);
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const history = await Diagnosis.find({ user: userId }).sort({ createdAt: -1 });
         res.status(200).json(history);
     } catch (error) {
         console.error("Error fetching user history:", error);

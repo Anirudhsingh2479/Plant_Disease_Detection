@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { Box, Button, Typography, Paper, CircularProgress, Alert } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import ImageIcon from '@mui/icons-material/Image';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import axiosInstance from '../../api/axiosInstance';
 
-const UploadSection = () => {
+const UploadSection = ({ onScanComplete }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -17,6 +21,7 @@ const UploadSection = () => {
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
       setUploadSuccess(false);
+      setErrorMessage('');
     }
   };
 
@@ -39,6 +44,7 @@ const UploadSection = () => {
       setSelectedFile(files[0]);
       setPreviewUrl(URL.createObjectURL(files[0]));
       setUploadSuccess(false);
+      setErrorMessage('');
     }
   };
 
@@ -46,26 +52,40 @@ const UploadSection = () => {
     if (!selectedFile) return;
 
     setIsAnalyzing(true);
+    setErrorMessage('');
+    setUploadSuccess(false);
 
     try {
-      // TODO: Create a FormData object, append the file, and make your Axios POST request here.
-      // Example:
-      // const formData = new FormData();
-      // formData.append('image', selectedFile);
-      // await axios.post('/api/diagnosis/analyze', formData, { ...headers });
+      const formData = new FormData();
+      formData.append('leafImage', selectedFile);
+
+      const response = await axiosInstance.post('/predict/diagnose', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const diagnosis = response.data?.data;
+      const diseaseName = diagnosis?.diseaseName || response.data?.prediction?.diseaseName || 'Unknown';
+
+      setAnalysisMessage(`Detected: ${diseaseName}`);
+      setUploadSuccess(true);
+
+      if (typeof onScanComplete === 'function') {
+        onScanComplete(diseaseName);
+      }
 
       setTimeout(() => {
-        setUploadSuccess(true);
-        setIsAnalyzing(false);
-        setTimeout(() => {
-          setSelectedFile(null);
-          setPreviewUrl(null);
-          setUploadSuccess(false);
-        }, 3000);
-      }, 2000);
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setUploadSuccess(false);
+      }, 3000);
 
     } catch (error) {
       console.error("Error analyzing image:", error);
+      const backendMessage = error.response?.data?.message;
+      setErrorMessage(backendMessage || 'Failed to analyze image. Please try again.');
+    } finally {
       setIsAnalyzing(false);
     }
   };
@@ -99,7 +119,13 @@ const UploadSection = () => {
           severity="success" 
           sx={{ mb: 3, borderRadius: 2 }}
         >
-          Analysis complete! Image processed successfully.
+          {analysisMessage || 'Analysis complete! Image processed successfully.'}
+        </Alert>
+      )}
+
+      {errorMessage && (
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+          {errorMessage}
         </Alert>
       )}
 
@@ -213,3 +239,7 @@ const UploadSection = () => {
 };
 
 export default UploadSection;
+
+UploadSection.propTypes = {
+  onScanComplete: PropTypes.func,
+};

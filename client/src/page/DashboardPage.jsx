@@ -1,25 +1,4 @@
-// import DashboardLayout from '../components/dashboard/DashboardLayout';
-// import UploadSection from '../components/dashboard/UploadSection';
-// import HistorySection from '../components/dashboard/HistorySection';
-
-// const DashboardPage = () => {
-//   return (
-//     // DashboardLayout handles the Navbar at the top and Footer at the bottom
-//     <DashboardLayout>
-      
-//       {/* Top half of the page: Drag & Drop / Image Upload functionality */}
-//       <UploadSection />
-      
-//       {/* Bottom half of the page: Grid of previous diagnoses fetched from the backend */}
-//       <HistorySection />
-
-//     </DashboardLayout>
-//   );
-// };
-
-// export default DashboardPage;
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Fab } from "@mui/material";
 import ChatIcon from "@mui/icons-material/Chat";
 
@@ -35,10 +14,12 @@ const DashboardPage = () => {
   // 1. Add state for the Chat Panel
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [detectedDisease, setDetectedDisease] = useState("");
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   // 2. Add handler for when the user successfully uploads/scans a plant
   const handleScanComplete = (prediction) => {
     setDetectedDisease(prediction);
+    setHistoryRefreshKey((prev) => prev + 1);
     setIsChatOpen(true); // Auto-trigger the side panel!
   };
 
@@ -51,7 +32,7 @@ const DashboardPage = () => {
       <UploadSection onScanComplete={handleScanComplete} />
       
       {/* Bottom half: Grid of previous diagnoses fetched from the backend */}
-      <HistorySection />
+      <HistorySection refreshKey={historyRefreshKey} />
 
       {/* Floating Action Button for Manual Chat */}
       <Fab 

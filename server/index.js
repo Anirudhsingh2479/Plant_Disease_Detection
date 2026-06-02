@@ -6,7 +6,9 @@ const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const rateLimiter = require("express-rate-limit");
 const mongoose = require("mongoose"); // Added for MongoDB
+const path = require("node:path");
 const diagnosisRoutes = require("./routes/diagnosisRoutes"); // Import diagnosis routes
+const predictRoutes = require("./routes/predictRoutes");
 
 
 const config = require("./configuration/app.config").config;
@@ -16,11 +18,6 @@ const HTTPSTATUS = require("./configuration/http.config").HTTPSTATUS;
 const authRoutes = require("./routes/authRoutes");
 
 const app = express();
-
-// app.use(cors({
-//     origin: 'http://localhost:5173', // Change this if your Vite app runs on a different port
-//     credentials: true,               // This allows your frontend to send tokens/cookies
-// }));
 
 app.set("trust proxy", 1);
 app.use(
@@ -45,11 +42,10 @@ app.use(
   }),
 );
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // Health Check Route
 app.get(`/`, (req, res) => {
-
-
-
   res.status(HTTPSTATUS.OK).json({
     message: "Piss Off, You Anirudh.", 
     status: "ok",
@@ -63,6 +59,7 @@ app.get(`/`, (req, res) => {
 // 2. Mount Authentication Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/diagnosis", diagnosisRoutes);
+app.use("/api/predict", predictRoutes);
 
 // 3. Database Connection Function
 const connectDatabase = async () => {

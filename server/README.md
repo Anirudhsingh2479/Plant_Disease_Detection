@@ -25,3 +25,19 @@ The server currently uses these npm packages:
 - `npm run dev` starts the server with `nodemon`
 - `npm start` starts the server with Node.js
 - `npm run build` prints the placeholder build message because the server has no build step
+
+## FastAPI Model Bridge
+
+The diagnosis endpoint now forwards uploaded images to a FastAPI model service.
+
+Required environment variables:
+
+- `FASTAPI_URL` default: `http://127.0.0.1:8000`
+- `FASTAPI_TIMEOUT_MS` default: `15000`
+
+Flow:
+
+1. React uploads `leafImage` to Node endpoint `POST /api/predict/diagnose`.
+2. Node forwards the image to FastAPI `POST /predict`.
+3. FastAPI returns disease prediction and confidence.
+4. Node stores diagnosis in MongoDB and returns it to React.

@@ -1,60 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { Box, Typography, Grid, CircularProgress, Alert, Paper } from '@mui/material';
 import HistoryIcon from '@mui/icons-material/History';
 import HistoryCard from './HistoryCard';
-// import axios from 'axios'; 
+import axiosInstance from '../../api/axiosInstance';
 
-const HistorySection = () => {
+const HistorySection = ({ refreshKey = 0 }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
-      try {
-        // TODO: Replace with your actual Axios call when backend is running.
-        // Make sure to pass your JWT token in the headers!
-        // const response = await axios.get('/api/diagnosis/history', {
-        //   headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        // });
-        // setHistory(response.data);
+      setLoading(true);
+      setError(null);
 
-        // Simulating backend data fetch for testing purposes
-        setTimeout(() => {
-          setHistory([
-            {
-              _id: '1',
-              imageUrl: 'https://via.placeholder.com/300x200/e0f7fa/006064?text=Tomato+Leaf',
-              diseaseName: 'Tomato Early Blight',
-              confidence: 0.98,
-              createdAt: new Date().toISOString(),
-            },
-            {
-              _id: '2',
-              imageUrl: 'https://via.placeholder.com/300x200/e8f5e9/1b5e20?text=Apple+Leaf',
-              diseaseName: 'Healthy',
-              confidence: 0.99,
-              createdAt: new Date(Date.now() - 86400000).toISOString(),
-            },
-            {
-              _id: '3',
-              imageUrl: 'https://via.placeholder.com/300x200/ffe0b2/e65100?text=Corn+Leaf',
-              diseaseName: 'Corn Leaf Rust',
-              confidence: 0.95,
-              createdAt: new Date(Date.now() - 172800000).toISOString(),
-            }
-          ]);
-          setLoading(false);
-        }, 1000);
+      try {
+        const response = await axiosInstance.get('/diagnosis/history');
+        setHistory(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error("Error fetching history:", err);
-        setError('Failed to load diagnosis history.');
+        const backendMessage = err.response?.data?.message;
+        setError(backendMessage || 'Failed to load diagnosis history.');
+      } finally {
         setLoading(false);
       }
     };
 
     fetchHistory();
-  }, []);
+  }, [refreshKey]);
 
   if (loading) {
     return (
@@ -199,3 +173,7 @@ const HistorySection = () => {
 };
 
 export default HistorySection;
+
+HistorySection.propTypes = {
+  refreshKey: PropTypes.number,
+};
