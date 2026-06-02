@@ -28,6 +28,23 @@ Thumbs.db
 # IDE files
 .vscode/
 .idea/
+
+# Model files (large binary files)
+*.keras
+*.h5
+*.pkl
+*.pth
+models/fastapi_service/model/
+models/chatbot/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Uploads directory
+server/uploads/
 *.sublime-project
 *.sublime-workspace
 
