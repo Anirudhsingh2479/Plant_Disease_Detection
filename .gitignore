@@ -34,8 +34,7 @@ Thumbs.db
 *.h5
 *.pkl
 *.pth
-models/fastapi_service/model/
-models/chatbot/
+venv/
 
 # Build outputs
 dist/

@@ -1,6 +1,7 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, responsiveFontSizes } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { useSelector } from 'react-redux';
 import LandingPage from './page/LandingPage';
 import AuthPage from './page/AuthPage'; // Added import
 import VerifyEmailPage from './page/VerifyEmailPage';
@@ -18,6 +19,16 @@ let theme = createTheme({
 // 2. Apply the "magic" responsive font sizes utility!
 theme = responsiveFontSizes(theme);
 
+const PublicRoute = ({ children }) => {
+  const { token } = useSelector((state) => state.auth || {});
+
+  if (token) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
+
 function App() {
   return (
     // 3. Wrap your entire application (including the Router) in the ThemeProvider
@@ -28,12 +39,40 @@ function App() {
       <Router>
         <Routes>
           {/* Main Landing Route */}
-          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/"
+            element={(
+              <PublicRoute>
+                <LandingPage />
+              </PublicRoute>
+            )}
+          />
           
           {/* Authentication Routes */}
-          <Route path="/login" element={<AuthPage initialMode="login" />} />
-          <Route path="/signup" element={<AuthPage initialMode="signup" />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route
+            path="/login"
+            element={(
+              <PublicRoute>
+                <AuthPage initialMode="login" />
+              </PublicRoute>
+            )}
+          />
+          <Route
+            path="/signup"
+            element={(
+              <PublicRoute>
+                <AuthPage initialMode="signup" />
+              </PublicRoute>
+            )}
+          />
+          <Route
+            path="/verify-email"
+            element={(
+              <PublicRoute>
+                <VerifyEmailPage />
+              </PublicRoute>
+            )}
+          />
 
           {/* Protected Dashboard Route */}
           <Route

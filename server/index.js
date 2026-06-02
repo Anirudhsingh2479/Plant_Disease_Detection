@@ -26,7 +26,9 @@ app.use(
     max: 60,
   }),
 );
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(cookieParser());
@@ -34,7 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
-    origin: "http://localhost:5173", // Keep as "*" for dev, change to your frontend URL in production
+    origin: ["http://localhost:5173", "http://localhost:5174"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
@@ -42,7 +44,10 @@ app.use(
   }),
 );
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", (req, res, next) => {
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  next();
+}, express.static(path.join(__dirname, "uploads")));
 
 // Health Check Route
 app.get(`/`, (req, res) => {
