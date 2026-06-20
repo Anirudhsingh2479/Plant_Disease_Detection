@@ -1,11 +1,102 @@
-import React from 'react';
-import { Box, Paper, Typography, Button } from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Box, Button, CircularProgress, Paper, Typography } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import axiosInstance from '../../api/axiosInstance';
 
 // Keep your image import here!
 import Plant_image from '../../assets/Plant_image1.png';
 
 const LiveDemo = () => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const previewUrl = useMemo(
+    () => (selectedFile ? URL.createObjectURL(selectedFile) : Plant_image),
+    [selectedFile]
+  );
+
+  useEffect(() => {
+    if (!selectedFile) {
+      return undefined;
+    }
+
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [selectedFile, previewUrl]);
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setAnalysisMessage('');
+      setErrorMessage('');
+    }
+  };
+
+  const handleDrag = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.type === 'dragenter' || event.type === 'dragover') {
+      setDragActive(true);
+    } else if (event.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragActive(false);
+
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setAnalysisMessage('');
+      setErrorMessage('');
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!selectedFile) return;
+
+    setIsAnalyzing(true);
+    setAnalysisMessage('');
+    setErrorMessage('');
+
+    try {
+      const formData = new FormData();
+      formData.append('leafImage', selectedFile);
+
+      const response = await axiosInstance.post('/predict/diagnose', formData, {
+        headers: {
+          'x-request-source': 'landing',
+        },
+      });
+
+      const prediction = response.data?.prediction;
+      const confidence = Number(prediction?.confidence ?? response.data?.data?.confidence ?? 0);
+      const confidencePercent = Number.isFinite(confidence)
+        ? (confidence * 100).toFixed(1)
+        : '0.0';
+
+      setAnalysisMessage(`${prediction?.diseaseName || 'Unknown'} (${confidencePercent}% confidence)`);
+    } catch (error) {
+      const backendMessage = error.response?.data?.message;
+      const detailMessage = error.response?.data?.details?.detail;
+      const fallbackMessage = !error.response
+        ? 'Request failed before reaching server. Check backend CORS/server status.'
+        : error.message;
+      setErrorMessage(detailMessage || backendMessage || fallbackMessage || 'Failed to analyze image. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     // The main container is now a flex row
     <Box sx={{ 
@@ -30,7 +121,7 @@ const LiveDemo = () => {
       >
         <Box
           component="img"
-          src={Plant_image}
+          src={previewUrl}
           alt="Plant Disease Diagnosis"
           sx={{
             width: '100%',
@@ -56,15 +147,28 @@ const LiveDemo = () => {
             boxShadow: '0px 4px 12px rgba(0,0,0,0.25)',
           }}
         >
-          {/* Tomato Late Blight */}
+          {analysisMessage || 'Upload and analyze to see result'}
         </Box>
       </Paper>
 
       {/* --- RIGHT SIDE: DRAG & DROP ZONE --- */}
+      <input
+        accept="image/*"
+        id="landing-file-input"
+        type="file"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+
       <Paper 
         elevation={0} 
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
         sx={{ 
-          border: '2px dashed #a7f3d0', 
+          border: '2px dashed',
+          borderColor: dragActive ? '#2e7d32' : '#a7f3d0',
           backgroundColor: 'rgba(255, 255, 255, 0.6)', 
           backdropFilter: 'blur(10px)',
           borderRadius: 4, 
@@ -85,10 +189,47 @@ const LiveDemo = () => {
           Drag & Drop your leaf photo
         </Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          High-res JPG or PNG (Max 5MB)
+          {selectedFile ? selectedFile.name : 'High-res JPG or PNG (Max 5MB)'}
         </Typography>
-        <Button variant="outlined" color="success" sx={{ mt: 2, borderRadius: 5, textTransform: 'none' }}>
-          Browse Files
+
+        {analysisMessage && (
+          <Alert severity="success" sx={{ mt: 2, width: '100%' }}>
+            Detected: {analysisMessage}
+          </Alert>
+        )}
+
+        {errorMessage && (
+          <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
+            {errorMessage}
+          </Alert>
+        )}
+
+        <label htmlFor="landing-file-input">
+          <Button
+            component="span"
+            variant="outlined"
+            color="success"
+            sx={{ mt: 2, borderRadius: 5, textTransform: 'none' }}
+          >
+            {selectedFile ? 'Change File' : 'Browse Files'}
+          </Button>
+        </label>
+
+        <Button
+          variant="contained"
+          color="success"
+          onClick={handleAnalyze}
+          disabled={!selectedFile || isAnalyzing}
+          sx={{ mt: 2, borderRadius: 5, textTransform: 'none' }}
+        >
+          {isAnalyzing ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={18} color="inherit" />
+              Analyzing...
+            </Box>
+          ) : (
+            'Analyze Leaf'
+          )}
         </Button>
       </Paper>
 

@@ -39,9 +39,30 @@ MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "5"))
 STATE: dict[str, Any] = {
 	"model": None,
 	"labels": [],
+	"input_size": IMAGE_SIZE,
 	"model_loaded": False,
 	"error": None,
 }
+
+
+def _resolve_model_input_size(model: Any) -> int:
+	input_shape = getattr(model, "input_shape", None)
+	if not input_shape:
+		return IMAGE_SIZE
+
+	if isinstance(input_shape, list):
+		input_shape = input_shape[0]
+
+	if not input_shape or len(input_shape) < 3:
+		return IMAGE_SIZE
+
+	height = input_shape[1]
+	width = input_shape[2]
+
+	if isinstance(height, int) and isinstance(width, int) and height == width:
+		return height
+
+	return IMAGE_SIZE
 
 
 def _load_labels() -> list[str]:
@@ -73,16 +94,19 @@ def _load_model() -> None:
 
 	model = tf.keras.models.load_model(str(model_file))
 	labels = _load_labels()
+	resolved_input_size = _resolve_model_input_size(model)
 
 	STATE["model"] = model
 	STATE["labels"] = labels
+	STATE["input_size"] = resolved_input_size
 	STATE["model_loaded"] = True
 	STATE["error"] = None
 
 
 def _preprocess_image(image_bytes: bytes) -> np.ndarray:
+	target_size = int(STATE.get("input_size") or IMAGE_SIZE)
 	image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-	image = image.resize((IMAGE_SIZE, IMAGE_SIZE))
+	image = image.resize((target_size, target_size))
 	image_array = np.asarray(image, dtype=np.float32) / 255.0
 	return np.expand_dims(image_array, axis=0)
 
@@ -109,6 +133,7 @@ def health() -> dict[str, Any]:
 		"status": "ok" if STATE["model_loaded"] else "degraded",
 		"modelLoaded": STATE["model_loaded"],
 		"modelPath": MODEL_PATH,
+		"inputSize": STATE["input_size"],
 		"labelsCount": len(STATE["labels"]),
 		"error": STATE["error"],
 	}
@@ -151,7 +176,7 @@ async def predict(file: Annotated[UploadFile, File(...)]) -> dict[str, Any]:
 		"diseaseName": disease_name,
 		"confidence": confidence,
 		"modelMeta": {
-			"inputSize": IMAGE_SIZE,
+			"inputSize": STATE["input_size"],
 			"modelPath": MODEL_PATH,
 			"classIndex": class_index,
 		},

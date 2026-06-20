@@ -61,7 +61,7 @@ const UploadSection = ({ onScanComplete }) => {
 
       const response = await axiosInstance.post('/predict/diagnose', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'x-request-source': 'dashboard',
         },
       });
 
@@ -84,7 +84,8 @@ const UploadSection = ({ onScanComplete }) => {
     } catch (error) {
       console.error("Error analyzing image:", error);
       const backendMessage = error.response?.data?.message;
-      setErrorMessage(backendMessage || 'Failed to analyze image. Please try again.');
+      const detailMessage = error.response?.data?.details?.detail;
+      setErrorMessage(detailMessage || backendMessage || 'Failed to analyze image. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }

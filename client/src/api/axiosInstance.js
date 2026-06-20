@@ -9,6 +9,26 @@ const axiosInstance = axios.create({
     withCredentials: true
 });
 
+axiosInstance.interceptors.request.use((config) => {
+    try {
+        const persistedAuth = localStorage.getItem('authState');
+        if (persistedAuth) {
+            const parsedAuth = JSON.parse(persistedAuth);
+            const token = parsedAuth?.token;
+            if (token) {
+                config.headers = config.headers || {};
+                if (!config.headers.Authorization) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+            }
+        }
+    } catch {
+        // Ignore malformed localStorage payloads and proceed without Bearer token.
+    }
+
+    return config;
+});
+
 // Cookies are sent automatically with every request because withCredentials: true is set above.
 
 export default axiosInstance;

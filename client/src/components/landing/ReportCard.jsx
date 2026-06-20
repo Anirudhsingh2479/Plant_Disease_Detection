@@ -1,11 +1,10 @@
-import React from 'react';
 import { Grid, Card, CardContent, Typography, Box } from '@mui/material';
 
 const ReportCard = () => {
   const metrics = [
-    { title: "Training Accuracy", score: "86.80%", color: "#3b82f6", desc: "Model's capability on known data." },
-    { title: "Validation Accuracy", score: "89.30%", color: "#8b5cf6", desc: "Precision during the tuning phase." },
-    { title: "Testing Accuracy", score: "88.56%", color: "#2e7d32", desc: "True performance in the wild test." },
+    { title: "Training Accuracy", score: "98.94%", color: "#3b82f6", desc: "Model's capability on known data." },
+    { title: "Validation Accuracy", score: "97.92%", color: "#8b5cf6", desc: "Precision during the tuning phase." },
+    { title: "Testing Accuracy", score: "98.65%", color: "#2e7d32", desc: "True performance in the wild test." },
   ];
 
   return (
@@ -25,12 +24,10 @@ const ReportCard = () => {
       <Grid 
         container 
         spacing={{ xs: 3, md: 4 }} 
-        justifyContent="center" 
-        alignItems="stretch" // 3. This forces every column in the grid to be the exact same height!
-        sx={{ maxWidth: '1100px', width: '100%', m: 0 }} 
+        sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch', width: '100%', px: { xs: 2, md: 0 }, maxWidth: '1100px', mx: 'auto' }} 
       >
         {metrics.map((metric, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index} sx={{ display: 'flex', justifyContent: 'center' }}>
+          <Grid item xs={12} sm={6} md={4} key={index} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch' }}>
             <Card 
               elevation={0} 
               sx={{ 

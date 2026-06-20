@@ -16,7 +16,9 @@ const HistorySection = ({ refreshKey = 0 }) => {
       setError(null);
 
       try {
-        const response = await axiosInstance.get('/diagnosis/history');
+        const response = await axiosInstance.get('/diagnosis/history', {
+          withCredentials: true
+        });
         setHistory(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error("Error fetching history:", err);
