@@ -10,6 +10,13 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+        if (config.headers) {
+            delete config.headers['Content-Type'];
+            delete config.headers['content-type'];
+        }
+    }
+
     try {
         const persistedAuth = localStorage.getItem('authState');
         if (persistedAuth) {

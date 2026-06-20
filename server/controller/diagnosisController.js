@@ -4,16 +4,19 @@ const getAuthenticatedUserId = (req) => req.user?.userId || req.user?._id;
 
 const saveDiagnosis = async (req,res) =>{
     try{
-        const {imageurl,diseaseName,confidence} = req.body;
+        const {imageurl, cloudinaryUrl, diseaseName, confidence} = req.body;
         const userId = getAuthenticatedUserId(req);
 
         if (!userId) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
 
+        const resolvedImageUrl = cloudinaryUrl || imageurl;
+
         const newDiagnosis = new Diagnosis({
             user: userId,
-            imageUrl: imageurl,
+            imageUrl: resolvedImageUrl,
+            cloudinaryUrl: resolvedImageUrl,
             diseaseName,
             confidence,
         });

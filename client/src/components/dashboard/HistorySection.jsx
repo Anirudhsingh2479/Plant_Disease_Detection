@@ -161,9 +161,9 @@ const HistorySection = ({ refreshKey = 0 }) => {
           </Typography>
         </Paper>
       ) : (
-        <Grid container spacing={3} sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+        <Grid container spacing={3} sx={{ width: '100%', alignItems: 'stretch' }}>
           {history.map((diagnosis) => (
-            <Grid item xs={12} sm={6} md={4} key={diagnosis._id} sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Grid item xs={12} sm={6} md={4} key={diagnosis._id} sx={{ display: 'flex', height: '100%' }}>
               {/* Passing the individual diagnosis data into the card we built earlier */}
               <HistoryCard diagnosis={diagnosis} />
             </Grid>

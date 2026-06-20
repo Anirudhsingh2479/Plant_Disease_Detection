@@ -10,6 +10,10 @@ const diagnosisSchema =new mongoose.Schema({
         type:String,
         required:true,
     },
+    cloudinaryUrl:{
+        type:String,
+        required:true,
+    },
     diseaseName:{
         type:String,
         required:true,

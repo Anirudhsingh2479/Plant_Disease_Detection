@@ -28,18 +28,24 @@ const HistoryCard = ({ diagnosis }) => {
   const confidence = diagnosis.confidence * 100;
   let imageSrc = 'https://via.placeholder.com/600x400?text=No+Image';
 
-  if (diagnosis.imageUrl) {
-    imageSrc = diagnosis.imageUrl.startsWith('http')
-      ? diagnosis.imageUrl
-      : `http://localhost:5000${diagnosis.imageUrl.startsWith('/') ? '' : '/'}${diagnosis.imageUrl}`;
+  const persistedImageUrl = diagnosis.cloudinaryUrl || diagnosis.imageUrl;
+
+  if (persistedImageUrl) {
+    imageSrc = persistedImageUrl.startsWith('http')
+      ? persistedImageUrl
+      : `http://localhost:5000${persistedImageUrl.startsWith('/') ? '' : '/'}${persistedImageUrl}`;
   }
 
   return (
     <>
       <Card 
         sx={{ 
-          maxWidth: 345,
-          margin: 2,
+          width: '100%',
+          maxWidth: '100%',
+          minHeight: 360,
+          height: 360,
+          display: 'flex',
+          flexDirection: 'column',
           boxShadow: '0 4px 12px rgba(46, 125, 50, 0.08)',
           border: '1px solid rgba(46, 125, 50, 0.1)',
           borderRadius: 2,
@@ -52,7 +58,15 @@ const HistoryCard = ({ diagnosis }) => {
           }
         }}
       >
-        <CardActionArea onClick={handleOpen} sx={{ height: '100%' }}>
+        <CardActionArea
+          onClick={handleOpen}
+          sx={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'stretch'
+          }}
+        >
           <Box sx={{ position: 'relative' }}>
             <CardMedia
               component="img"
@@ -89,14 +103,22 @@ const HistoryCard = ({ diagnosis }) => {
             </Box>
           </Box>
 
-          <CardContent>
+          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
             <Typography 
               variant="h6" 
               component="div" 
               sx={{ 
                 fontWeight: 'bold',
                 color: isHealthy ? '#2e7d32' : '#d32f2f',
-                mb: 1
+                mb: 1,
+                minHeight: 64,
+                maxHeight: 64,
+                lineHeight: 1.25,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical'
               }}
             >
               {diagnosis.diseaseName}
@@ -115,7 +137,7 @@ const HistoryCard = ({ diagnosis }) => {
               />
             </Box>
 
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 'auto', mb: 0 }}>
               {date}
             </Typography>
           </CardContent>

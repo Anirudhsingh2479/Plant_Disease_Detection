@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('node:fs');
 const axios = require('axios');
 const FormData = require('form-data');
 const { requireAuth } = require('../middleware/authMiddleware');
 const upload = require('../utils/uploadConfig');
+const { uploadBufferToCloudinary } = require('../utils/cloudinary');
 const Diagnosis = require('../models/Diagnosis');
 
 const FASTAPI_URL = process.env.FASTAPI_URL || 'http://127.0.0.1:8000';
@@ -50,8 +50,12 @@ router.post('/diagnose', upload.single('leafImage'), async (req, res) => {
                 return res.status(400).json({ success: false, message: 'leafImage is required' });
             }
 
+            const cloudinaryResult = await uploadBufferToCloudinary(req.file.buffer, {
+                public_id: `diagnosis-${Date.now()}`,
+            });
+
             const form = new FormData();
-            form.append('file', fs.createReadStream(req.file.path), {
+            form.append('file', req.file.buffer, {
                 filename: req.file.originalname,
                 contentType: req.file.mimetype,
             });
@@ -64,13 +68,14 @@ router.post('/diagnose', upload.single('leafImage'), async (req, res) => {
             });
 
             const normalizedPrediction = normalizePrediction(fastApiResponse.data);
-            const imageUrl = `/uploads/${req.file.filename}`;
+            const imageUrl = cloudinaryResult.secure_url;
 
             let savedDiagnosis = null;
             if (userId) {
                 savedDiagnosis = await Diagnosis.create({
                     user: userId,
                     imageUrl,
+                    cloudinaryUrl: imageUrl,
                     diseaseName: normalizedPrediction.diseaseName,
                     confidence: normalizedPrediction.confidence,
                 });
