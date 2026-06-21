@@ -9,6 +9,7 @@ const mongoose = require("mongoose"); // Added for MongoDB
 const path = require("node:path");
 const diagnosisRoutes = require("./routes/diagnosisRoutes"); // Import diagnosis routes
 const predictRoutes = require("./routes/predictRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
 
 const config = require("./configuration/app.config").config;
@@ -65,6 +66,7 @@ app.get(`/`, (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/diagnosis", diagnosisRoutes);
 app.use("/api/predict", predictRoutes);
+app.use("/api/chat", chatRoutes);
 
 // 3. Database Connection Function
 const connectDatabase = async () => {

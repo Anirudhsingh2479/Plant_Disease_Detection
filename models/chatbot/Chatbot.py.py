@@ -49,7 +49,7 @@ print("🧠 Booting Plant Disease AI Assistant...")
 print("📚 Reading disease database...")
 
 loader = TextLoader(
-    "plant_disease.txt",
+    "/Users/rmishra/Documents/ank/Plant_Disease_Detection/models/chatbot/plant_disease.txt",
     encoding="utf-8"
 )
 

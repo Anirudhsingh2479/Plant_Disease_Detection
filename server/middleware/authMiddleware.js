@@ -4,6 +4,11 @@ const getTokenFromRequest = (req) => {
     const cookieToken = req.cookies?.token;
     if (cookieToken) return cookieToken;
 
+    const queryToken = req.query?.access_token;
+    if (typeof queryToken === 'string' && queryToken.trim()) {
+        return queryToken.trim();
+    }
+
     const authHeader = req.headers?.authorization;
     if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
         return authHeader.slice(7).trim();

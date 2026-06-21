@@ -3,8 +3,8 @@ import { Drawer, Box, Typography, IconButton, TextField, Button, Divider, Stack,
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
-import axios from "axios";
 import { useTranslation } from "react-i18next";
+import axiosInstance from "../../api/axiosInstance";
 
 const ChatSidePanel = ({ open, onClose, detectedDisease }) => {
   const { t } = useTranslation();
@@ -12,14 +12,30 @@ const ChatSidePanel = ({ open, onClose, detectedDisease }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const eventSourceRef = useRef(null);
 
   // Greeting Logic: Auto-detect if this is a diagnostic session or general chat
   useEffect(() => {
     if (open) {
       if (detectedDisease) {
-        setMessages([{ sender: "bot", text: t("chat.scan_greet", { disease: detectedDisease }) }]);
+        setMessages([
+          {
+            sender: "bot",
+            text: t("chat.scan_greet", {
+              disease: detectedDisease,
+              defaultValue: `Hi! I can see the detected disease is ${detectedDisease}. What would you like to know?`,
+            }),
+          },
+        ]);
       } else {
-        setMessages([{ sender: "bot", text: t("chat.general_greet") }]);
+        setMessages([
+          {
+            sender: "bot",
+            text: t("chat.general_greet", {
+              defaultValue: "Hi! I am your plant disease assistant. How can I help you today?",
+            }),
+          },
+        ]);
       }
     }
   }, [open, detectedDisease, t]);
@@ -27,6 +43,15 @@ const ChatSidePanel = ({ open, onClose, detectedDisease }) => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -36,14 +61,126 @@ const ChatSidePanel = ({ open, onClose, detectedDisease }) => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:8000/api/chat", {
+      setMessages((prev) => [...prev, { sender: "bot", text: "" }]);
+      let streamDone = false;
+      let fallbackStarted = false;
+
+      const applyBotText = (text) => {
+        setMessages((prev) => {
+          if (!prev.length) return prev;
+          const next = [...prev];
+          const lastIndex = next.length - 1;
+          if (next[lastIndex].sender === "bot") {
+            next[lastIndex] = { ...next[lastIndex], text };
+            return next;
+          }
+          return [...next, { sender: "bot", text }];
+        });
+      };
+
+      const fallbackToStandardChat = async () => {
+        if (fallbackStarted || streamDone) return;
+        fallbackStarted = true;
+        try {
+          const response = await axiosInstance.post("/chat", {
+            user_message: userText,
+            detected_disease: detectedDisease || null,
+          });
+
+          const botText = response?.data?.bot_response;
+          if (typeof botText === "string" && botText.trim()) {
+            applyBotText(botText);
+          } else {
+            applyBotText(
+              t("chat.error", {
+                defaultValue: "Sorry, I couldn't process that request. Please try again.",
+              })
+            );
+          }
+        } catch {
+          applyBotText(
+            t("chat.error", {
+              defaultValue: "Sorry, I couldn't process that request. Please try again.",
+            })
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+
+      let accessToken = "";
+      try {
+        const persistedAuth = localStorage.getItem("authState");
+        if (persistedAuth) {
+          const parsedAuth = JSON.parse(persistedAuth);
+          accessToken = parsedAuth?.token || "";
+        }
+      } catch {
+        accessToken = "";
+      }
+
+      const params = new URLSearchParams({
         user_message: userText,
-        detected_disease: detectedDisease || null // Backend handles null fine
+        detected_disease: detectedDisease || "",
+        access_token: accessToken,
       });
-      setMessages((prev) => [...prev, { sender: "bot", text: response.data.bot_response }]);
+
+      const eventSource = new EventSource(`http://localhost:5000/api/chat/stream?${params.toString()}`, {
+        withCredentials: true,
+      });
+
+      eventSourceRef.current = eventSource;
+
+      eventSource.addEventListener("token", (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          const token = payload?.text || "";
+
+          if (!token) return;
+
+          setMessages((prev) => {
+            if (!prev.length) return prev;
+            const next = [...prev];
+            const lastIndex = next.length - 1;
+            if (next[lastIndex].sender !== "bot") return prev;
+            next[lastIndex] = {
+              ...next[lastIndex],
+              text: `${next[lastIndex].text}${token}`,
+            };
+            return next;
+          });
+        } catch {
+          // Ignore malformed token events and keep stream alive.
+        }
+      });
+
+      eventSource.addEventListener("done", () => {
+        streamDone = true;
+        setIsLoading(false);
+        eventSource.close();
+        eventSourceRef.current = null;
+      });
+
+      eventSource.addEventListener("error", async () => {
+        if (streamDone) return;
+        eventSource.close();
+        eventSourceRef.current = null;
+        await fallbackToStandardChat();
+      });
     } catch (error) {
-      setMessages((prev) => [...prev, { sender: "bot", text: t("chat.error") }]);
-    } finally {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: t("chat.error", {
+            defaultValue: "Sorry, I couldn't process that request. Please try again.",
+          }),
+        },
+      ]);
       setIsLoading(false);
     }
   };
@@ -51,13 +188,13 @@ const ChatSidePanel = ({ open, onClose, detectedDisease }) => {
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: "100%", sm: 450 }, bgcolor: "#fbfdfa" } }}>
       <Box sx={{ p: 2, bgcolor: "#1b5e20", color: "white", display: "flex", justifyContent: "space-between" }}>
-        <Typography variant="h6"><SmartToyIcon /> {t("chat.title")}</Typography>
+        <Typography variant="h6"><SmartToyIcon /> {t("chat.title", { defaultValue: "Plant Assistant" })}</Typography>
         <IconButton onClick={onClose} sx={{ color: "white" }}><CloseIcon /></IconButton>
       </Box>
 
       {detectedDisease && (
         <Box sx={{ p: 1.5, bgcolor: "#e8f5e9", textAlign: "center" }}>
-          <Typography variant="caption">{t("chat.context")}: <b>{detectedDisease}</b></Typography>
+          <Typography variant="caption">{t("chat.context", { defaultValue: "Context" })}: <b>{detectedDisease}</b></Typography>
         </Box>
       )}
 
@@ -65,7 +202,9 @@ const ChatSidePanel = ({ open, onClose, detectedDisease }) => {
         <Stack spacing={2}>
           {messages.map((msg, i) => (
             <Box key={i} sx={{ alignSelf: msg.sender === "user" ? "flex-end" : "flex-start", bgcolor: msg.sender === "user" ? "#1b5e20" : "#ffffff", color: msg.sender === "user" ? "white" : "black", p: 1.5, borderRadius: 2, maxWidth: "85%" }}>
-              <Typography variant="body2">{msg.text}</Typography>
+              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                {msg.text}
+              </Typography>
             </Box>
           ))}
           {isLoading && <CircularProgress size={20} color="success" />}
@@ -74,7 +213,16 @@ const ChatSidePanel = ({ open, onClose, detectedDisease }) => {
       </Box>
 
       <Box sx={{ p: 2, display: "flex", gap: 1 }}>
-        <TextField fullWidth size="small" placeholder={t("chat.placeholder")} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSend()} />
+        <TextField
+          fullWidth
+          size="small"
+          placeholder={t("chat.placeholder", {
+            defaultValue: "Ask about plant disease, prevention, or treatment...",
+          })}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+        />
         <Button variant="contained" color="success" onClick={handleSend}><SendIcon /></Button>
       </Box>
     </Drawer>
