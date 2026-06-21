@@ -31,7 +31,10 @@ SETTINGS = Settings(
     labels_path=os.getenv("LABELS_PATH", str(BASE_DIR / "labels.example.json")),
     image_size=int(os.getenv("IMAGE_SIZE", "256")),
     max_upload_mb=int(os.getenv("MAX_UPLOAD_MB", "5")),
-    chatbot_knowledge_path=os.getenv("CHATBOT_KNOWLEDGE_PATH", str(BASE_DIR.parent / "chatbot" / "plant_disease.txt")),
+    chatbot_knowledge_path=os.getenv(
+        "CHATBOT_KNOWLEDGE_PATH",
+        str(BASE_DIR / "app" / "prompt" / "plant_disease.txt"),
+    ),
     chatbot_vectorstore_path=os.getenv(
         "CHATBOT_CHROMA_PATH",
         os.getenv("CHATBOT_FAISS_PATH", str(BASE_DIR / "chroma_db")),
