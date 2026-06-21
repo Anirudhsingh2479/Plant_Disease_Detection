@@ -32,7 +32,7 @@ app.add_middleware(
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 MODEL_PATH = os.getenv("MODEL_PATH", str(BASE_DIR / "model" / "best_plant_model.keras"))
-LABELS_PATH = os.getenv("LABELS_PATH", "")
+LABELS_PATH = os.getenv("LABELS_PATH", str(BASE_DIR / "labels.example.json"))
 IMAGE_SIZE = int(os.getenv("IMAGE_SIZE", "256"))
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "5"))
 
@@ -118,10 +118,29 @@ def _resolve_label(index: int) -> str:
 	return f"class_{index}"
 
 
+def _humanize_label(label: str) -> str:
+	# PlantVillage-style labels often use multiple underscores as separators.
+	readable = label.replace("___", " - ").replace("__", " - ").replace("_", " ")
+	return " ".join(readable.split())
+
+
 @app.on_event("startup")
 def startup_event() -> None:
 	try:
 		_load_model()
+		import logging
+		logging.info("[startup] Effective MODEL_PATH=%s", MODEL_PATH)
+		if os.getenv("CLASS_NAMES", "").strip():
+			logging.info("[startup] Labels source: CLASS_NAMES env (%d labels)", len(STATE["labels"]))
+		else:
+			logging.info("[startup] Labels source: LABELS_PATH=%s", LABELS_PATH)
+		if not STATE["labels"]:
+			logging.warning(
+				"[startup] No labels loaded — all predictions will return 'class_N'. "
+				"Set LABELS_PATH to a JSON array file or CLASS_NAMES to a comma-separated list."
+			)
+		else:
+			logging.info("[startup] Loaded %d labels: %s", len(STATE["labels"]), STATE["labels"])
 	except Exception as exc:  # pragma: no cover
 		STATE["error"] = str(exc)
 		STATE["model_loaded"] = False
@@ -133,6 +152,7 @@ def health() -> dict[str, Any]:
 		"status": "ok" if STATE["model_loaded"] else "degraded",
 		"modelLoaded": STATE["model_loaded"],
 		"modelPath": MODEL_PATH,
+		"labelsSource": "CLASS_NAMES" if os.getenv("CLASS_NAMES", "").strip() else "LABELS_PATH",
 		"inputSize": STATE["input_size"],
 		"labelsCount": len(STATE["labels"]),
 		"error": STATE["error"],
@@ -166,7 +186,8 @@ async def predict(file: Annotated[UploadFile, File(...)]) -> dict[str, Any]:
 		probs = np.asarray(predictions[0], dtype=np.float32)
 		class_index = int(np.argmax(probs))
 		confidence = float(probs[class_index])
-		disease_name = _resolve_label(class_index)
+		raw_disease_name = _resolve_label(class_index)
+		disease_name = _humanize_label(raw_disease_name)
 	except HTTPException:
 		raise
 	except Exception as exc:
@@ -179,6 +200,7 @@ async def predict(file: Annotated[UploadFile, File(...)]) -> dict[str, Any]:
 			"inputSize": STATE["input_size"],
 			"modelPath": MODEL_PATH,
 			"classIndex": class_index,
+			"rawDiseaseName": raw_disease_name,
 		},
 	}
 

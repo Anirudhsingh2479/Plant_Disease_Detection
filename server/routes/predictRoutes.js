@@ -67,6 +67,7 @@ router.post('/diagnose', upload.single('leafImage'), async (req, res) => {
                 maxContentLength: Infinity,
             });
 
+            console.log('[Diagnose] Raw model response:', JSON.stringify(fastApiResponse.data, null, 2));
             const normalizedPrediction = normalizePrediction(fastApiResponse.data);
             const imageUrl = cloudinaryResult.secure_url;
 
