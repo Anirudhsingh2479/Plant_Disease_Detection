@@ -34,7 +34,7 @@ Thumbs.db
 *.h5
 *.pkl
 *.pth
-venv/
+.venv/
 
 # Build outputs
 dist/
@@ -74,7 +74,7 @@ temp/
 *.sqlite
 *.sqlite3
 
-venv/
+.venv/
 
 __pycache__/
 *.pyc
