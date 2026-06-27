@@ -96,6 +96,8 @@ def initialize_inference(settings: Settings, state: InferenceState) -> None:
     except Exception as exc:  # pragma: no cover
         state.error = str(exc)
         state.model_loaded = False
+        logging.error("[startup] Model initialization failed: %s", exc)
+        raise RuntimeError(f"Failed to initialize inference model: {exc}") from exc
 
 
 def preprocess_image(image_bytes: bytes, input_size: int) -> np.ndarray:
