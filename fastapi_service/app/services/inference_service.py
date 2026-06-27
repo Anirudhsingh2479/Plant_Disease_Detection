@@ -2,6 +2,7 @@ import io
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,12 @@ from ..config import Settings
 from ..state import InferenceState
 
 logger = logging.getLogger(__name__)
+# Ensure logger outputs to console
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter('[%(name)s] %(levelname)s: %(message)s'))
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
 
 try:
     import tensorflow as tf
@@ -121,6 +128,7 @@ def humanize_label(label: str) -> str:
 
 
 def predict_image(content_type: str | None, content: bytes, settings: Settings, state: InferenceState) -> dict[str, Any]:
+    logger.info("🔍 PREDICT_IMAGE CALLED")
     if not state.model_loaded:
         raise HTTPException(status_code=503, detail=f"Model is not ready: {state.error}")
 
@@ -134,8 +142,8 @@ def predict_image(content_type: str | None, content: bytes, settings: Settings, 
     try:
         input_tensor = preprocess_image(content, int(state.input_size or settings.image_size))
         predictions = state.model.predict(input_tensor, verbose=0)
-        logger.debug("[predict] Raw model output shape: %s, dtype: %s", predictions.shape, predictions.dtype)
-        logger.debug("[predict] Raw predictions: %s", predictions)
+        logger.info(f"🎯 Raw model output shape: {predictions.shape}, dtype: {predictions.dtype}")
+        logger.debug(f"🎯 Raw predictions: {predictions}")
         
         probs = np.asarray(predictions[0], dtype=np.float32)
         class_index = int(np.argmax(probs))
@@ -143,10 +151,9 @@ def predict_image(content_type: str | None, content: bytes, settings: Settings, 
         raw_disease_name = resolve_label(state, class_index)
         disease_name = humanize_label(raw_disease_name)
         
-        logger.info("[predict] Probabilities (top 5): %s", 
-                     sorted(enumerate(probs), key=lambda x: x[1], reverse=True)[:5])
-        logger.info("[predict] Class index: %d, Confidence: %.4f, Disease: %s", 
-                     class_index, confidence, disease_name)
+        top_5 = sorted(enumerate(probs), key=lambda x: x[1], reverse=True)[:5]
+        logger.info(f"🎯 Probabilities (top 5): {top_5}")
+        logger.info(f"🎯 Class index: {class_index}, Confidence: {confidence:.4f}, Disease: {disease_name}")
     except HTTPException:
         raise
     except Exception as exc:
