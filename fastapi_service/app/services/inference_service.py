@@ -12,6 +12,8 @@ from PIL import Image
 from ..config import Settings
 from ..state import InferenceState
 
+logger = logging.getLogger(__name__)
+
 try:
     import tensorflow as tf
 except Exception as exc:  # pragma: no cover
@@ -81,22 +83,22 @@ def load_model(settings: Settings, state: InferenceState) -> None:
 def initialize_inference(settings: Settings, state: InferenceState) -> None:
     try:
         load_model(settings, state)
-        logging.info("[startup] Effective MODEL_PATH=%s", settings.model_path)
+        logger.info("[startup] Effective MODEL_PATH=%s", settings.model_path)
         if os.getenv("CLASS_NAMES", "").strip():
-            logging.info("[startup] Labels source: CLASS_NAMES env (%d labels)", len(state.labels))
+            logger.info("[startup] Labels source: CLASS_NAMES env (%d labels)", len(state.labels))
         else:
-            logging.info("[startup] Labels source: LABELS_PATH=%s", settings.labels_path)
+            logger.info("[startup] Labels source: LABELS_PATH=%s", settings.labels_path)
         if not state.labels:
-            logging.warning(
+            logger.warning(
                 "[startup] No labels loaded - all predictions will return 'class_N'. "
                 "Set LABELS_PATH to a JSON array file or CLASS_NAMES to a comma-separated list."
             )
         else:
-            logging.info("[startup] Loaded %d labels: %s", len(state.labels), state.labels)
+            logger.info("[startup] Loaded %d labels: %s", len(state.labels), state.labels)
     except Exception as exc:  # pragma: no cover
         state.error = str(exc)
         state.model_loaded = False
-        logging.error("[startup] Model initialization failed: %s", exc)
+        logger.error("[startup] Model initialization failed: %s", exc)
         raise RuntimeError(f"Failed to initialize inference model: {exc}") from exc
 
 
@@ -132,8 +134,8 @@ def predict_image(content_type: str | None, content: bytes, settings: Settings, 
     try:
         input_tensor = preprocess_image(content, int(state.input_size or settings.image_size))
         predictions = state.model.predict(input_tensor, verbose=0)
-        logging.debug("[predict] Raw model output shape: %s, dtype: %s", predictions.shape, predictions.dtype)
-        logging.debug("[predict] Raw predictions: %s", predictions)
+        logger.debug("[predict] Raw model output shape: %s, dtype: %s", predictions.shape, predictions.dtype)
+        logger.debug("[predict] Raw predictions: %s", predictions)
         
         probs = np.asarray(predictions[0], dtype=np.float32)
         class_index = int(np.argmax(probs))
@@ -141,9 +143,9 @@ def predict_image(content_type: str | None, content: bytes, settings: Settings, 
         raw_disease_name = resolve_label(state, class_index)
         disease_name = humanize_label(raw_disease_name)
         
-        logging.info("[predict] Probabilities (top 5): %s", 
+        logger.info("[predict] Probabilities (top 5): %s", 
                      sorted(enumerate(probs), key=lambda x: x[1], reverse=True)[:5])
-        logging.info("[predict] Class index: %d, Confidence: %.4f, Disease: %s", 
+        logger.info("[predict] Class index: %d, Confidence: %.4f, Disease: %s", 
                      class_index, confidence, disease_name)
     except HTTPException:
         raise
