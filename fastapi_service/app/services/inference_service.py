@@ -132,11 +132,19 @@ def predict_image(content_type: str | None, content: bytes, settings: Settings, 
     try:
         input_tensor = preprocess_image(content, int(state.input_size or settings.image_size))
         predictions = state.model.predict(input_tensor, verbose=0)
+        logging.debug("[predict] Raw model output shape: %s, dtype: %s", predictions.shape, predictions.dtype)
+        logging.debug("[predict] Raw predictions: %s", predictions)
+        
         probs = np.asarray(predictions[0], dtype=np.float32)
         class_index = int(np.argmax(probs))
         confidence = float(probs[class_index])
         raw_disease_name = resolve_label(state, class_index)
         disease_name = humanize_label(raw_disease_name)
+        
+        logging.info("[predict] Probabilities (top 5): %s", 
+                     sorted(enumerate(probs), key=lambda x: x[1], reverse=True)[:5])
+        logging.info("[predict] Class index: %d, Confidence: %.4f, Disease: %s", 
+                     class_index, confidence, disease_name)
     except HTTPException:
         raise
     except Exception as exc:
