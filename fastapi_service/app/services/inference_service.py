@@ -2,7 +2,6 @@ import io
 import json
 import logging
 import os
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -14,12 +13,6 @@ from ..config import Settings
 from ..state import InferenceState
 
 logger = logging.getLogger(__name__)
-# Ensure logger outputs to console
-if not logger.handlers:
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter('[%(name)s] %(levelname)s: %(message)s'))
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
 
 try:
     import tensorflow as tf
@@ -105,7 +98,7 @@ def initialize_inference(settings: Settings, state: InferenceState) -> None:
     except Exception as exc:  # pragma: no cover
         state.error = str(exc)
         state.model_loaded = False
-        logger.error("[startup] Model initialization failed: %s", exc)
+        logger.exception("[startup] Model initialization failed")
         raise RuntimeError(f"Failed to initialize inference model: {exc}") from exc
 
 
