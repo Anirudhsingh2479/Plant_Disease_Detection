@@ -104,9 +104,12 @@ def initialize_inference(settings: Settings, state: InferenceState) -> None:
 
 def preprocess_image(image_bytes: bytes, input_size: int) -> np.ndarray:
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    image = image.resize((input_size, input_size))
-    image_array = np.asarray(image, dtype=np.float32) / 255.0
-    return np.expand_dims(image_array, axis=0)
+    image = image.resize((256, 256))
+    image_array = np.asarray(image, dtype=np.float32)
+    image_array = np.expand_dims(image_array, axis=0)
+    image_array = tf.image.resize_with_crop_or_pad(image_array, input_size, input_size)
+    image_array = tf.keras.applications.resnet50.preprocess_input(image_array)
+    return np.asarray(image_array, dtype=np.float32)
 
 
 def resolve_label(state: InferenceState, index: int) -> str:
