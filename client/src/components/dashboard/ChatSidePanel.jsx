@@ -129,7 +129,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease }) => {
         access_token: accessToken,
       });
 
-      const eventSource = new EventSource(`http://localhost:5000/api/chat/stream?${params.toString()}`, {
+      const eventSource = new EventSource(`${import.meta.env.VITE_API_BASE_URL}/chat/stream?${params.toString()}`, {
         withCredentials: true,
       });
 

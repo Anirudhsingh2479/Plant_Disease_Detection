@@ -33,7 +33,7 @@ const HistoryCard = ({ diagnosis }) => {
   if (persistedImageUrl) {
     imageSrc = persistedImageUrl.startsWith('http')
       ? persistedImageUrl
-      : `http://localhost:5000${persistedImageUrl.startsWith('/') ? '' : '/'}${persistedImageUrl}`;
+      : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}${persistedImageUrl.startsWith('/') ? '' : '/'}${persistedImageUrl}`;
   }
 
   return (
