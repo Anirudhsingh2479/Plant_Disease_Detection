@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const axiosInstance = axios.create({
     //This creates a CUSTOM Axios object.
-    baseURL: 'http://localhost:5000/api',
+    baseURL: import.meta.env.VITE_API_BASE_URL,
     headers: {
         'Content-Type': 'application/json', //It tells backend:"I am sending JSON data."
     },
