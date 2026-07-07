@@ -30,7 +30,6 @@ Thumbs.db
 .idea/
 
 # Model files (large binary files)
-*.keras
 *.h5
 *.pkl
 *.pth
