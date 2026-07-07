@@ -134,24 +134,40 @@ const verifyEmail = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(`[AUTH] Login attempt for email: ${email}`);
+    console.log(`[AUTH] Database connection state: ${require('mongoose').connection.readyState}`);
 
+    console.log(`[AUTH] Querying User collection for email: ${email}`);
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    
+    if (!user) {
+      console.log(`[AUTH] ❌ User not found: ${email}`);
+      return res.status(404).json({ message: 'User not found' });
+    }
+    console.log(`[AUTH] ✅ User found: ${user._id}`);
 
-    if (!user.isVerified) return res.status(403).json({ message: 'Please verify your email before logging in.' });
+    if (!user.isVerified) {
+      console.log(`[AUTH] ⚠️  User not verified: ${email}`);
+      return res.status(403).json({ message: 'Please verify your email before logging in.' });
+    }
+    console.log(`[AUTH] ✅ User verified`);
 
-    const isPasswordCorrect = await bcrypt.compare(password, user.password);// here Compares entered password with hashed password.
-    //You NEVER decrypt password.Instead bcrypt hashes entered password again and compares hashes.
-
-    if (!isPasswordCorrect) return res.status(400).json({ message: 'Invalid credentials' });
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      console.log(`[AUTH] ❌ Password incorrect for: ${email}`);
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    console.log(`[AUTH] ✅ Password correct`);
 
     const authPayload = buildAuthResponse(user);
-
     setAuthCookie(res, authPayload.token);
-    //Stores JWT inside browser cookie.
-
+    
+    console.log(`[AUTH] ✅ Login successful for: ${email}`);
     res.status(200).json({ result: authPayload, message: 'Logged in successfully' });
   } catch (error) {
+    console.error(`[AUTH] ❌ Login error:`, error);
+    console.error(`[AUTH] Error type: ${error.name}`);
+    console.error(`[AUTH] Error message: ${error.message}`);
     res.status(500).json({ message: 'Server error during login', error: error.message });
   }
 };

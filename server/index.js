@@ -71,6 +71,15 @@ app.use("/api/chat", chatRoutes);
 // 3. Database Connection Function
 const connectDatabase = async () => {
   try {
+    console.log('[STARTUP] Env vars check:');
+    console.log(`[STARTUP] MONGO_URI exists: ${!!process.env.MONGO_URI}`);
+    console.log(`[STARTUP] MONGO_URI value (first 50 chars): ${process.env.MONGO_URI?.substring(0, 50)}...`);
+    console.log(`[STARTUP] NODE_ENV: ${process.env.NODE_ENV}`);
+    
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI environment variable is not set!');
+    }
+    
     // Assuming process.env.MONGO_URI is set in your .env
     await mongoose.connect(process.env.MONGO_URI);
     console.log("Successfully connected to MongoDB!");
