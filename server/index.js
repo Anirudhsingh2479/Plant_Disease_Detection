@@ -104,6 +104,11 @@ console.log("[STARTUP] About to call app.listen on port", PORT);
 app.listen(PORT, async () => {
   console.log(`\n[STARTUP] ✅ Express server listening on port ${PORT}`);
   console.log("[STARTUP] Now connecting to MongoDB...");
+  try {
   await connectDatabase();
+  } catch(error) {
+    console.error("[STARTUP] Database connection failed:", error.message);
+    process.exit(1); // Exit the process if the database connection fails
+  }
   console.log("[STARTUP] ✅ Database connection complete\n");
 });
