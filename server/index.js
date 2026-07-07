@@ -1,22 +1,30 @@
 require("dotenv").config();
+console.log("[INIT] Server starting...");
+console.log("[INIT] Loading dependencies...");
+
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const rateLimiter = require("express-rate-limit");
-const mongoose = require("mongoose"); // Added for MongoDB
+const mongoose = require("mongoose");
 const path = require("node:path");
-const diagnosisRoutes = require("./routes/diagnosisRoutes"); // Import diagnosis routes
+
+console.log("[INIT] Dependencies loaded");
+
+const diagnosisRoutes = require("./routes/diagnosisRoutes");
 const predictRoutes = require("./routes/predictRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const authRoutes = require("./routes/authRoutes");
 
+console.log("[INIT] Routes imported");
 
 const config = require("./configuration/app.config").config;
 const HTTPSTATUS = require("./configuration/http.config").HTTPSTATUS;
 
-// 1. Import our Authentication Routes
-const authRoutes = require("./routes/authRoutes");
+console.log("[INIT] Config loaded. PORT:", config.PORT, "NODE_ENV:", config.NODE_ENV);
+console.log("[INIT] Env check - MONGO_URI exists:", !!process.env.MONGO_URI);
 
 const app = express();
 
