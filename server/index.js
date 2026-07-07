@@ -98,7 +98,12 @@ const connectDatabase = async () => {
 };
 
 // Start Server
-app.listen(config.PORT, async () => {
-  console.log(`Server listening on port ${config.PORT} in ${config.NODE_ENV}`);
-  await connectDatabase(); // Uncommented and active!
+const PORT = config.PORT || 5000;
+console.log("[STARTUP] About to call app.listen on port", PORT);
+
+app.listen(PORT, async () => {
+  console.log(`\n[STARTUP] ✅ Express server listening on port ${PORT}`);
+  console.log("[STARTUP] Now connecting to MongoDB...");
+  await connectDatabase();
+  console.log("[STARTUP] ✅ Database connection complete\n");
 });
