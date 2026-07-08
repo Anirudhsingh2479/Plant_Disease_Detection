@@ -1,5 +1,6 @@
 import logging
 import sys
+from threading import Thread
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,10 +34,13 @@ app.add_middleware(
 
 app.include_router(router)
 
-@app.on_event("startup")
-def startup_event() -> None:
-	STATE.input_size = SETTINGS.image_size
-	initialize_inference(SETTINGS, STATE)
+
+def _warmup_services() -> None:
+	try:
+		initialize_inference(SETTINGS, STATE)
+	except Exception:
+		# initialize_inference already logs and updates STATE.error
+		pass
 
 	if SETTINGS.chatbot_warmup:
 		try:
@@ -46,4 +50,10 @@ def startup_event() -> None:
 		except Exception as exc:
 			STATE.chatbot_ready = False
 			STATE.chatbot_error = str(exc)
+
+
+@app.on_event("startup")
+def startup_event() -> None:
+	STATE.input_size = SETTINGS.image_size
+	Thread(target=_warmup_services, daemon=True).start()
 

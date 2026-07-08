@@ -40,5 +40,5 @@ SETTINGS = Settings(
         os.getenv("CHATBOT_FAISS_PATH", str(BASE_DIR / "chroma_db")),
     ),
     chatbot_embedding_model=os.getenv("CHATBOT_EMBEDDING_MODEL", "sentence-transformers/all-mpnet-base-v2"),
-    chatbot_warmup=_env_bool("CHATBOT_WARMUP", True),
+    chatbot_warmup=_env_bool("CHATBOT_WARMUP", False),
 )
