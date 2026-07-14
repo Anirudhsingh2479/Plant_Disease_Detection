@@ -1,0 +1,10 @@
+# Conversion-only dependencies (not needed in production runtime).
+# Use this when exporting .keras/.h5 models to .onnx.
+#
+# IMPORTANT: conversion environment must use the project Python version (3.12.x).
+# Python 3.13 currently has no stable wheel path for this stack in this project,
+# which causes pip to compile onnx from source and fail on macOS.
+tensorflow==2.17.0; python_version >= "3.12" and python_version < "3.13"
+tf2onnx==1.16.1; python_version >= "3.12" and python_version < "3.13"
+onnx==1.16.2; python_version >= "3.12" and python_version < "3.13"
+onnxruntime==1.20.1; python_version >= "3.12" and python_version < "3.13"

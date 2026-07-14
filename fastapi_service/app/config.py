@@ -7,6 +7,7 @@ from pathlib import Path
 class Settings:
     base_dir: Path
     model_path: str
+    model_backend: str
     labels_path: str
     image_size: int
     max_upload_mb: int
@@ -27,7 +28,8 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 
 SETTINGS = Settings(
     base_dir=BASE_DIR,
-    model_path=os.getenv("MODEL_PATH", str(BASE_DIR / "model" / "best_plant_model.keras")),
+    model_path=os.getenv("MODEL_PATH", str(BASE_DIR / "model" / "best_plant_model.onnx")),
+    model_backend=os.getenv("MODEL_BACKEND", "auto").strip().lower(),
     labels_path=os.getenv("LABELS_PATH", str(BASE_DIR / "labels.example.json")),
     image_size=int(os.getenv("IMAGE_SIZE", "256")),
     max_upload_mb=int(os.getenv("MAX_UPLOAD_MB", "5")),
