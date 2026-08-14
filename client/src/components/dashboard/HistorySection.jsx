@@ -5,7 +5,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import HistoryCard from './HistoryCard';
 import axiosInstance from '../../api/axiosInstance';
 
-const HistorySection = ({ refreshKey = 0 }) => {
+const HistorySection = ({ refreshKey = 0, onGetRemedy }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -165,7 +165,7 @@ const HistorySection = ({ refreshKey = 0 }) => {
           {history.map((diagnosis) => (
             <Grid item xs={12} sm={6} md={4} key={diagnosis._id} sx={{ display: 'flex', height: '100%' }}>
               {/* Passing the individual diagnosis data into the card we built earlier */}
-              <HistoryCard diagnosis={diagnosis} />
+              <HistoryCard diagnosis={diagnosis} onGetRemedy={onGetRemedy} />
             </Grid>
           ))}
         </Grid>

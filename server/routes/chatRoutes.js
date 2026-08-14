@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const { requireAuth } = require('../middleware/authMiddleware');
+const ChatMessage = require('../models/ChatMessage');
 
 const router = express.Router();
 
@@ -9,6 +10,22 @@ const FASTAPI_TIMEOUT_MS = Number(process.env.FASTAPI_TIMEOUT_MS || 15000);
 const STREAM_TIMEOUT_MS = Number(process.env.CHAT_STREAM_TIMEOUT_MS || 30000);
 
 const getAuthenticatedUserId = (req) => req.user?.userId || req.user?._id;
+
+const saveMessageToHistory = async (userId, sessionId, sender, text, detectedDisease = '') => {
+  if (!userId || !sessionId || !text) return;
+  try {
+    await ChatMessage.create({
+      userId,
+      sessionId,
+      sender,
+      text: String(text).trim(),
+      detectedDisease: String(detectedDisease || '').trim(),
+      timestamp: new Date(),
+    });
+  } catch (err) {
+    console.warn('Failed to save chat message to DB:', err.message);
+  }
+};
 
 const generateFallbackChatResponse = async (userMessage, detectedDisease) => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -50,27 +67,56 @@ Provide concise, practical, actionable agricultural advice answering the user's 
 
   // Enhanced agricultural NLP fallback matching engine
   if (msgLower.includes('fruit') || msgLower.includes('tuber') || msgLower.includes('effect') || msgLower.includes('harvest') || msgLower.includes('yield')) {
-    return `**Effect of ${disease} on fruit/yield**:\n• **Tuber/Fruit Damage**: Fungal infections cause dark, sunken, corky rot spots on tubers and fruits.\n• **Yield Loss**: Premature defoliation reduces photosynthesis, leading to significantly smaller fruit size and stunted crop yield.\n• **Post-Harvest Rot**: Infected fruits rot quickly during storage if stored in warm, humid conditions.`;
+    return `### Effect of ${disease} on fruit/yield:\n* **Tuber/Fruit Damage:** Fungal infections cause dark, sunken, corky rot spots on tubers and fruits.\n* **Yield Loss:** Premature defoliation reduces photosynthesis, leading to significantly smaller fruit size and stunted crop yield.\n* **Post-Harvest Rot:** Infected fruits rot quickly during storage if stored in warm, humid conditions.`;
   }
 
   if (msgLower.includes('cure') || msgLower.includes('treatment') || msgLower.includes('remedy') || msgLower.includes('heal') || msgLower.includes('fix')) {
-    return `For managing and curing **${disease}**:\n1. **Fungicide Spray**: Apply copper-based or chlorothalonil organic fungicides every 7–10 days.\n2. **Pruning**: Trim and safely burn/dispose of heavily infected leaves.\n3. **Irrigation Control**: Water near the roots using drip irrigation; avoid overhead sprinklers to keep leaves dry.`;
+    return `### Managing and curing ${disease}:\n1. **Fungicide Spray:** Apply copper-based or chlorothalonil organic fungicides every 7–10 days.\n2. **Pruning:** Trim and safely burn/dispose of heavily infected leaves.\n3. **Irrigation Control:** Water near the roots using drip irrigation; avoid overhead sprinklers to keep leaves dry.`;
   }
 
   if (msgLower.includes('precaution') || msgLower.includes('prevent') || msgLower.includes('stop') || msgLower.includes('protect')) {
-    return `Key preventive measures for **${disease}**:\n• Practice crop rotation with non-solanaceous crops every 2-3 years.\n• Ensure adequate spacing between plants to maximize airflow.\n• Apply preventive neem oil spray every 14 days during warm, humid conditions.`;
+    return `### Key preventive measures for ${disease}:\n* Practice crop rotation with non-solanaceous crops every 2-3 years.\n* Ensure adequate spacing between plants to maximize airflow.\n* Apply preventive neem oil spray every 14 days during warm, humid conditions.`;
   }
 
   if (msgLower.includes('cause') || msgLower.includes('reason') || msgLower.includes('why') || msgLower.includes('spread')) {
-    return `**${disease}** is caused by fungal spores (*Alternaria solani* / *Phytophthora*) thriving in high humidity, wet leaf moisture, and warm temperatures (20°C–30°C). Rain splashing and wind carry spores to healthy plants.`;
+    return `### Causes of ${disease}:\n* Caused by fungal/bacterial spores thriving in high humidity, wet leaf moisture, and warm temperatures (20°C–30°C).\n* Rain splashing and wind carry spores to healthy plants.`;
   }
 
   if (msgLower.includes('symptom') || msgLower.includes('identify') || msgLower.includes('look') || msgLower.includes('spot')) {
-    return `Common symptoms of **${disease}**:\n• Concentric dark brown "target-like" rings on mature leaves.\n• Yellow halos surrounding leaf spots.\n• Yellowing and drooping of lower foliage.`;
+    return `### Common symptoms of ${disease}:\n* Concentric dark brown "target-like" rings on mature leaves.\n* Yellow halos surrounding leaf spots.\n* Yellowing and drooping of lower foliage.`;
   }
 
   return `Regarding **${disease}**: For the query "${userMessage}", ensure proper plant hygiene, apply copper-based fungicides if symptoms persist, and keep foliage dry with drip irrigation. Feel free to ask about specific cures, fruit impact, or preventive measures!`;
 };
+
+// Fetch chat history for a specific session ID
+router.get('/history/:sessionId', requireAuth, async (req, res) => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+    const { sessionId } = req.params;
+
+    if (!userId || !sessionId) {
+      return res.status(400).json({ success: false, message: 'Session ID is required' });
+    }
+
+    const messages = await ChatMessage.find({ userId, sessionId })
+      .sort({ timestamp: 1, createdAt: 1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      history: messages.map((m) => ({
+        id: m._id,
+        sender: m.sender,
+        text: m.text,
+        timestamp: m.timestamp || m.createdAt,
+      })),
+    });
+  } catch (error) {
+    console.error('Fetch chat history error:', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to fetch chat history' });
+  }
+});
 
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -82,6 +128,11 @@ router.post('/', requireAuth, async (req, res) => {
 
     const userId = getAuthenticatedUserId(req);
     const resolvedSessionId = session_id || `user_${userId || 'anonymous'}`;
+
+    // Save user message to history
+    await saveMessageToHistory(userId, resolvedSessionId, 'user', user_message, detected_disease);
+
+    let botResponse = '';
 
     try {
       const upstream = await axios.post(
@@ -95,19 +146,22 @@ router.post('/', requireAuth, async (req, res) => {
       );
 
       if (upstream.data?.bot_response) {
-        return res.status(200).json({
-          success: true,
-          bot_response: upstream.data.bot_response,
-        });
+        botResponse = upstream.data.bot_response;
       }
     } catch (upstreamErr) {
       console.warn('FastAPI chat service unavailable, utilizing AI advisor fallback:', upstreamErr.message);
     }
 
-    const fallbackResponse = await generateFallbackChatResponse(user_message, detected_disease);
+    if (!botResponse) {
+      botResponse = await generateFallbackChatResponse(user_message, detected_disease);
+    }
+
+    // Save bot response to history
+    await saveMessageToHistory(userId, resolvedSessionId, 'bot', botResponse, detected_disease);
+
     return res.status(200).json({
       success: true,
-      bot_response: fallbackResponse,
+      bot_response: botResponse,
     });
   } catch (error) {
     console.error('Chat endpoint error:', error.message);
@@ -125,21 +179,22 @@ router.get('/stream', requireAuth, async (req, res) => {
   const userId = getAuthenticatedUserId(req);
   const resolvedSessionId = session_id || `user_${userId || 'anonymous'}`;
 
+  // Save user message
+  await saveMessageToHistory(userId, resolvedSessionId, 'user', user_message, detected_disease);
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders?.();
 
-  let upstreamStream;
+  let fullBotResponse = '';
 
-  const closeStream = () => {
-    if (upstreamStream && !upstreamStream.destroyed) {
-      upstreamStream.destroy();
+  const finalizeAndSave = async (text) => {
+    if (text && text.trim()) {
+      await saveMessageToHistory(userId, resolvedSessionId, 'bot', text.trim(), detected_disease);
     }
   };
-
-  req.on('close', closeStream);
 
   try {
     const upstream = await axios.get(`${FASTAPI_URL}/chat/stream`, {
@@ -155,18 +210,36 @@ router.get('/stream', requireAuth, async (req, res) => {
       },
     });
 
-    upstreamStream = upstream.data;
+    const upstreamStream = upstream.data;
 
     upstreamStream.on('data', (chunk) => {
       res.write(chunk);
+      // Attempt to extract text for DB persistence
+      const chunkStr = chunk.toString();
+      if (chunkStr.includes('data:')) {
+        try {
+          const lines = chunkStr.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data:')) {
+              const parsed = JSON.parse(line.slice(5).trim());
+              if (parsed.text) fullBotResponse += parsed.text;
+              if (parsed.bot_response) fullBotResponse = parsed.bot_response;
+            }
+          }
+        } catch {
+          // Stream parsing helper fallback
+        }
+      }
     });
 
-    upstreamStream.on('end', () => {
+    upstreamStream.on('end', async () => {
+      await finalizeAndSave(fullBotResponse);
       res.end();
     });
 
     upstreamStream.on('error', async () => {
       const fallbackText = await generateFallbackChatResponse(user_message, detected_disease);
+      await finalizeAndSave(fallbackText);
       res.write('event: token\n');
       res.write(`data: ${JSON.stringify({ text: fallbackText })}\n\n`);
       res.write('event: done\n');
@@ -177,6 +250,7 @@ router.get('/stream', requireAuth, async (req, res) => {
     console.warn('FastAPI chat stream unavailable, streaming AI advisor fallback:', error.message);
     try {
       const fallbackText = await generateFallbackChatResponse(user_message, detected_disease);
+      await finalizeAndSave(fallbackText);
       
       const words = fallbackText.split(' ');
       let index = 0;
@@ -192,7 +266,7 @@ router.get('/stream', requireAuth, async (req, res) => {
           res.write(`data: ${JSON.stringify({ bot_response: fallbackText })}\n\n`);
           res.end();
         }
-      }, 40);
+      }, 30);
     } catch (fallbackErr) {
       res.write('event: error\n');
       res.write(`data: ${JSON.stringify({ message: 'Chat assistant error' })}\n\n`);

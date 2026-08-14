@@ -82,11 +82,23 @@ const FloatingLeaf = ({ size, startX, startY, delay, duration, color }) => {
 const DashboardPage = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [detectedDisease, setDetectedDisease] = useState("");
+  const [chatSessionId, setChatSessionId] = useState("");
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   const handleScanComplete = (prediction) => {
-    setDetectedDisease(prediction);
+    const diseaseName = typeof prediction === 'string' ? prediction : prediction?.diseaseName || '';
+    setDetectedDisease(diseaseName);
+    setChatSessionId(`scan_${Date.now()}`);
     setHistoryRefreshKey((prev) => prev + 1);
+    setIsChatOpen(true);
+  };
+
+  const handleGetRemedy = (diagnosis) => {
+    if (!diagnosis) return;
+    const diseaseName = diagnosis.diseaseName || '';
+    const sessionId = diagnosis._id ? `diag_${diagnosis._id}` : `scan_${Date.now()}`;
+    setDetectedDisease(diseaseName);
+    setChatSessionId(sessionId);
     setIsChatOpen(true);
   };
 
@@ -241,7 +253,7 @@ const DashboardPage = () => {
                 >
                   Recent Analytics
                 </Typography>
-                <HistorySection refreshKey={historyRefreshKey} />
+                <HistorySection refreshKey={historyRefreshKey} onGetRemedy={handleGetRemedy} />
               </Box>
             </motion.div>
 
@@ -259,6 +271,7 @@ const DashboardPage = () => {
         <Fab 
           onClick={() => { 
             setDetectedDisease(""); 
+            setChatSessionId(`general_${Date.now()}`);
             setIsChatOpen(true); 
           }}
           sx={{ 
@@ -276,7 +289,7 @@ const DashboardPage = () => {
               backgroundColor: '#1b4332',
               boxShadow: '0px 16px 32px rgba(15, 46, 34, 0.4)',
             },
-            zIndex: 1000, // Ensure it's always on top
+            zIndex: 1000,
           }}
         >
           <ChatIcon sx={{ fontSize: 26 }} />
@@ -287,6 +300,7 @@ const DashboardPage = () => {
         open={isChatOpen} 
         onClose={() => setIsChatOpen(false)} 
         detectedDisease={detectedDisease} 
+        sessionId={chatSessionId}
       />
     </DashboardLayout>
   );

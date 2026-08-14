@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { 
   Card, 
   CardContent, 
@@ -17,18 +18,26 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
-const HistoryCard = ({ diagnosis }) => {
+const HistoryCard = ({ diagnosis, onGetRemedy }) => {
   const [open, setOpen] = useState(false);
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  const date = new Date(diagnosis.createdAt).toLocaleDateString();
-  const isHealthy = diagnosis.diseaseName.toLowerCase() === 'healthy';
-  const confidence = diagnosis.confidence * 100;
+  const handleRemedyClick = () => {
+    handleClose();
+    if (onGetRemedy) {
+      onGetRemedy(diagnosis);
+    }
+  };
+
+  const date = diagnosis?.createdAt ? new Date(diagnosis.createdAt).toLocaleDateString() : '';
+  const isHealthy = String(diagnosis?.diseaseName || '').toLowerCase().includes('healthy');
+  const confidenceVal = Number(diagnosis?.confidence || 0);
+  const confidence = confidenceVal > 1 ? confidenceVal : confidenceVal * 100;
   let imageSrc = 'https://via.placeholder.com/600x400?text=No+Image';
 
-  const persistedImageUrl = diagnosis.cloudinaryUrl || diagnosis.imageUrl;
+  const persistedImageUrl = diagnosis?.cloudinaryUrl || diagnosis?.imageUrl;
 
   if (persistedImageUrl) {
     imageSrc = persistedImageUrl.startsWith('http')
@@ -41,18 +50,17 @@ const HistoryCard = ({ diagnosis }) => {
       <Card 
         sx={{ 
           width: '100%',
-          maxWidth: '100%',
-          minHeight: 360,
-          height: 360,
+          height: '380px',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 4px 12px rgba(46, 125, 50, 0.08)',
-          border: '1px solid rgba(46, 125, 50, 0.1)',
-          borderRadius: 2,
+          justifyContent: 'space-between',
+          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.05)',
+          border: '1px solid #e2e8f0',
+          borderRadius: 3,
           overflow: 'hidden',
-          transition: 'all 0.3s ease',
+          transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
           '&:hover': {
-            boxShadow: '0 12px 24px rgba(46, 125, 50, 0.15)',
+            boxShadow: '0 12px 24px rgba(46, 125, 50, 0.12)',
             transform: 'translateY(-4px)',
             borderColor: 'rgba(46, 125, 50, 0.3)'
           }
@@ -64,32 +72,33 @@ const HistoryCard = ({ diagnosis }) => {
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'stretch'
+            alignItems: 'stretch',
+            justifyContent: 'space-between'
           }}
         >
-          <Box sx={{ position: 'relative' }}>
+          <Box sx={{ position: 'relative', height: 200, backgroundColor: '#f1f5f9' }}>
             <CardMedia
               component="img"
               height="200"
               image={imageSrc}
-              alt="Uploaded Leaf"
-              sx={{ objectFit: 'cover' }}
+              alt={diagnosis?.diseaseName || 'Plant Leaf'}
+              sx={{ objectFit: 'cover', width: '100%' }}
             />
             {/* Status Badge */}
             <Box
               sx={{
                 position: 'absolute',
-                top: 8,
-                right: 8,
+                top: 10,
+                right: 10,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 0.5,
-                backgroundColor: isHealthy ? 'rgba(46, 125, 50, 0.9)' : 'rgba(211, 47, 47, 0.9)',
+                backgroundColor: isHealthy ? 'rgba(46, 125, 50, 0.92)' : 'rgba(211, 47, 47, 0.92)',
                 color: '#fff',
                 px: 1.5,
                 py: 0.5,
                 borderRadius: 50,
-                backdropFilter: 'blur(5px)'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
               }}
             >
               {isHealthy ? (
@@ -103,49 +112,51 @@ const HistoryCard = ({ diagnosis }) => {
             </Box>
           </Box>
 
-          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-            <Typography 
-              variant="h6" 
-              component="div" 
-              sx={{ 
-                fontWeight: 'bold',
-                color: isHealthy ? '#2e7d32' : '#d32f2f',
-                mb: 1,
-                minHeight: 64,
-                maxHeight: 64,
-                lineHeight: 1.25,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical'
-              }}
-            >
-              {diagnosis.diseaseName}
-            </Typography>
+          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', p: 2.5 }}>
+            <Box sx={{ minHeight: 48 }}>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  fontWeight: 'bold',
+                  color: isHealthy ? '#2e7d32' : '#d32f2f',
+                  lineHeight: 1.3,
+                  fontSize: '1rem',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical'
+                }}
+              >
+                {diagnosis?.diseaseName || 'Plant Diagnosis'}
+              </Typography>
+            </Box>
 
-            <Box sx={{ mb: 1.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
               <Chip
                 label={`${confidence.toFixed(1)}% Confidence`}
                 size="small"
                 sx={{
-                  background: `linear-gradient(135deg, rgba(46, 125, 50, 0.2) 0%, rgba(46, 125, 50, 0.1) 100%)`,
+                  background: 'rgba(46, 125, 50, 0.1)',
                   color: '#2e7d32',
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
                   border: '1px solid rgba(46, 125, 50, 0.2)'
                 }}
               />
-            </Box>
 
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 'auto', mb: 0 }}>
-              {date}
-            </Typography>
+              {date && (
+                <Typography variant="caption" color="text.secondary">
+                  {date}
+                </Typography>
+              )}
+            </Box>
           </CardContent>
         </CardActionArea>
       </Card>
 
       {/* Detail Dialog */}
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
         <DialogTitle sx={{ background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)', color: '#fff', fontWeight: 'bold' }}>
           Diagnosis Details
         </DialogTitle>
@@ -154,7 +165,7 @@ const HistoryCard = ({ diagnosis }) => {
             component="img"
             src={imageSrc}
             alt="Full size leaf"
-            sx={{ width: '100%', borderRadius: 2, marginBottom: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+            sx={{ width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 3, mb: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
           />
 
           <Box sx={{ mb: 2 }}>
@@ -168,7 +179,7 @@ const HistoryCard = ({ diagnosis }) => {
           </Box>
 
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: '#1b5e20' }}>
-            {diagnosis.diseaseName}
+            {diagnosis?.diseaseName}
           </Typography>
 
           <Typography variant="body1" paragraph sx={{ mt: 2 }}>
@@ -186,26 +197,30 @@ const HistoryCard = ({ diagnosis }) => {
             {confidence.toFixed(1)}% confident in this diagnosis
           </Typography>
 
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            <strong>Analysis Date:</strong> {new Date(diagnosis.createdAt).toLocaleString()}
-          </Typography>
+          {diagnosis?.createdAt && (
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              <strong>Analysis Date:</strong> {new Date(diagnosis.createdAt).toLocaleString()}
+            </Typography>
+          )}
 
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, p: 1.5, bgcolor: 'rgba(46, 125, 50, 0.05)', borderRadius: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, p: 1.5, bgcolor: 'rgba(46, 125, 50, 0.05)', borderRadius: 2 }}>
             💡 Tip: For best results, ensure good lighting and capture the affected area clearly.
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button onClick={handleClose} sx={{ color: '#2e7d32', fontWeight: 600 }}>
             Close
           </Button>
           <Button 
             variant="contained" 
-            onClick={handleClose}
+            onClick={handleRemedyClick}
             endIcon={<OpenInNewIcon />}
             sx={{
               background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
               textTransform: 'none',
-              fontWeight: 600
+              fontWeight: 700,
+              borderRadius: 3,
+              px: 2.5
             }}
           >
             Get Remedy
@@ -214,6 +229,11 @@ const HistoryCard = ({ diagnosis }) => {
       </Dialog>
     </>
   );
+};
+
+HistoryCard.propTypes = {
+  diagnosis: PropTypes.object.isRequired,
+  onGetRemedy: PropTypes.func,
 };
 
 export default HistoryCard;
