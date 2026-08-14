@@ -1,18 +1,22 @@
 import { AppBar, Toolbar, Typography, Button, Box, Avatar } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../redux/slices/authSlice';
 import SpaIcon from '@mui/icons-material/Spa';
+import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 
 const DashboardNavbar = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth || {});
 
   const handleLogout = () => {
     dispatch(logoutUser());
     navigate('/login');
   };
+
+  const initial = user?.name ? user.name[0].toUpperCase() : 'U';
 
   return (
     <AppBar 
@@ -50,18 +54,36 @@ const DashboardNavbar = () => {
           </Typography>
         </Box>
         
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar 
-            sx={{ 
-              bgcolor: 'rgba(255, 255, 255, 0.2)',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              width: 40,
-              height: 40,
-              cursor: 'pointer'
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Button
+            onClick={() => navigate('/profile')}
+            startIcon={
+              <Avatar 
+                sx={{ 
+                  bgcolor: 'rgba(255, 255, 255, 0.25)',
+                  border: '2px solid rgba(255, 255, 255, 0.4)',
+                  width: 32,
+                  height: 32,
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  color: '#fff'
+                }}
+              >
+                {initial}
+              </Avatar>
+            }
+            sx={{
+              color: '#fff',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' },
+              borderRadius: 3,
+              px: 1.5
             }}
           >
-            U
-          </Avatar>
+            Profile
+          </Button>
+
           <Button 
             color="inherit" 
             variant="outlined"

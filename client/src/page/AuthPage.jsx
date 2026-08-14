@@ -155,7 +155,7 @@ const AuthPage = ({ initialMode = "login" }) => {
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             />
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: -1.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: -1.5 }}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -169,6 +169,21 @@ const AuthPage = ({ initialMode = "login" }) => {
                 }
                 label={<Typography variant="body2" sx={{ color: '#64748b' }}>Show Password</Typography>}
               />
+
+              {!isSignUp && (
+                <Typography 
+                  variant="body2" 
+                  onClick={() => navigate('/forgot-password')}
+                  sx={{ 
+                    color: '#2e7d32', 
+                    fontWeight: 600, 
+                    cursor: 'pointer',
+                    '&:hover': { textDecoration: 'underline' }
+                  }}
+                >
+                  Forgot Password?
+                </Typography>
+              )}
             </Box>
 
             {/* 4. Display Redux Errors gracefully */}

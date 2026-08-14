@@ -315,4 +315,157 @@ const me = async (req, res) => {
   }
 };
 
-module.exports = { signup, verifyEmail, login, refresh, logout, me };
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email?.trim() || !EMAIL_PATTERN.test(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
+    }
+
+    const cleanEmail = normalizeEmail(email);
+    let user = await User.findOne({ email: cleanEmail });
+    if (!user) {
+      user = await User.findOne({
+        email: new RegExp(`^${cleanEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i'),
+      });
+    }
+
+    if (!user) {
+      return res.status(200).json({ message: 'If an account exists with that email, a password reset link has been sent.' });
+    }
+
+    const resetToken = jwt.sign(
+      { userId: user._id, type: 'reset' },
+      getAccessTokenSecret(),
+      { expiresIn: '1h' }
+    );
+
+    const resetLink = `${getClientBaseUrl()}/reset-password?token=${encodeURIComponent(resetToken)}`;
+
+    try {
+      await sendVerificationEmail(user.email, resetToken);
+      return res.status(200).json({
+        message: 'Password reset link sent to your email. Please check your inbox.',
+      });
+    } catch (emailError) {
+      if (process.env.NODE_ENV !== 'production') {
+        return res.status(200).json({
+          message: 'Development Mode: Password reset link generated.',
+          devResetLink: resetLink,
+          emailError: emailError.message,
+        });
+      }
+      return res.status(500).json({ message: `Failed to send reset email: ${emailError.message}` });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error during password reset request', error: error.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body || {};
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    }
+
+    const decodedToken = decodeURIComponent(token);
+    let decoded;
+    try {
+      decoded = jwt.verify(decodedToken, getAccessTokenSecret());
+    } catch {
+      return res.status(400).json({ message: 'Reset token is invalid or has expired' });
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.refreshToken = null;
+    await user.save();
+
+    clearAuthCookies(res);
+
+    return res.status(200).json({ message: 'Password reset successfully. Please log in with your new password.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error during password reset', error: error.message });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const { name } = req.body || {};
+    if (!name?.trim()) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
+    const userId = req.user?.userId || req.user?._id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.name = name.trim();
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to update profile', error: error.message });
+  }
+};
+
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters long' });
+    }
+
+    const userId = req.user?.userId || req.user?._id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Incorrect current password' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    return res.status(200).json({ success: true, message: 'Password changed successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to change password', error: error.message });
+  }
+};
+
+module.exports = {
+  signup,
+  verifyEmail,
+  login,
+  refresh,
+  logout,
+  me,
+  forgotPassword,
+  resetPassword,
+  updateProfile,
+  changePassword,
+};

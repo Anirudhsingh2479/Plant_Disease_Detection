@@ -61,6 +61,30 @@ export const refreshTokenThunk = createAsyncThunk(
     },
 );
 
+export const updateProfileThunk = createAsyncThunk(
+    'auth/updateProfile',
+    async (profileData, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.put('/auth/profile', profileData);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Profile update failed');
+        }
+    },
+);
+
+export const changePasswordThunk = createAsyncThunk(
+    'auth/changePassword',
+    async (passwordData, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.put('/auth/change-password', passwordData);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Password change failed');
+        }
+    },
+);
+
 export const logoutUser = createAsyncThunk(
     'auth/logoutUser',
     async () => {
@@ -145,6 +169,11 @@ const authSlice = createSlice({
             state.authChecked = true;
             state.user = null;
             state.error = action.payload || 'Email verification failed';
+        })
+        .addCase(updateProfileThunk.fulfilled, (state, action) => {
+            if (action.payload?.user) {
+                state.user = action.payload.user;
+            }
         })
         .addCase(refreshTokenThunk.rejected, (state) => {
             state.user = null;
