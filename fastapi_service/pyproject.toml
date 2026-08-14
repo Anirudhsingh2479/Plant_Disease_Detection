@@ -1,0 +1,26 @@
+[project]
+name = "plant-disease-fastapi"
+version = "1.0.0"
+description = "Plant Disease Detection – FastAPI inference service"
+requires-python = ">=3.12,<3.13"
+
+dependencies = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.30.6",
+    "python-multipart==0.0.9",
+    "pillow>=11.0.0",
+    "numpy==1.26.4",
+    "tensorflow==2.17.0; python_version < '3.13'",
+    "python-dotenv==1.0.1",
+    "langchain>=1.0.0",
+    "langchain-classic>=1.0.0",
+    "langchain-community>=0.4.0",
+    "langchain-chroma",
+    "langchain-text-splitters>=1.0.0",
+    "langchain-google-genai",
+    "sentence-transformers==3.0.1",
+]
+
+[tool.uv]
+# Keep a lockfile so every developer / CI run gets identical packages.
+# Generate / update it with:  uv lock

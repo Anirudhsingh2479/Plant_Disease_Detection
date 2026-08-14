@@ -1,0 +1,5 @@
+{
+  "knowledge_sha256": "5ed3ab60549643781bc55c9b5574704b5c67322cab5d55f8ce3fe079b85945e8",
+  "embedding_model": "sentence-transformers/all-mpnet-base-v2",
+  "collection_name": "plant_disease_chatbot"
+}
