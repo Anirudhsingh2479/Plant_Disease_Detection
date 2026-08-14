@@ -5,35 +5,72 @@ const { sendVerificationEmail } = require('../utils/sendEmail');
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
-const sanitizeUser = (user) => {
-  const userObject = user.toObject();
-  delete userObject.password;
-  return userObject;
+const getAccessTokenSecret = () => (
+  process.env.ACCESS_TOKEN_SECRET || process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'default_access_secret'
+);
+
+const getRefreshTokenSecret = () => (
+  process.env.REFRESH_TOKEN_SECRET || process.env.JWT_REFRESH_SECRET || (process.env.JWT_SECRET ? `${process.env.JWT_SECRET}_refresh` : 'default_refresh_secret')
+);
+
+const generateAccessToken = (user) => {
+  return jwt.sign({ userId: user._id }, getAccessTokenSecret(), { expiresIn: '15m' });
 };
 
-const buildAuthResponse = (user) => {
-  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-  return {
-    token,
-    user: sanitizeUser(user),
-  };
+const generateRefreshToken = (user) => {
+  return jwt.sign({ userId: user._id }, getRefreshTokenSecret(), { expiresIn: '7d' });
 };
 
-const setAuthCookie = (res, token) => {
+const setAuthCookies = (res, accessToken, refreshToken) => {
   const isProduction = process.env.NODE_ENV === 'production';
-
-  res.cookie('token', token, {
+  const cookieOptions = {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/',
-  });
+  };
+
+  if (accessToken) {
+    res.cookie('accessToken', accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+  }
+
+  if (refreshToken) {
+    res.cookie('refreshToken', refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+  }
 };
 
-const publicAuthPayload = (authPayload) => ({
-  user: authPayload.user,
+const clearAuthCookies = (res) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
+  };
+
+  res.clearCookie('accessToken', cookieOptions);
+  res.clearCookie('refreshToken', cookieOptions);
+  res.clearCookie('token', cookieOptions);
+};
+
+const sanitizeUser = (user) => {
+  if (!user) return null;
+  const userObject = typeof user.toObject === 'function' ? user.toObject() : { ...user };
+  delete userObject.password;
+  delete userObject.refreshToken;
+  return userObject;
+};
+
+const publicAuthPayload = (user, accessToken, refreshToken) => ({
+  accessToken,
+  refreshToken,
+  user: sanitizeUser(user),
 });
 
 const getClientBaseUrl = () => process.env.CLIENT_URL || 'http://localhost:5174';
@@ -95,7 +132,7 @@ const signup = async (req, res) => {
 
     const verificationToken = jwt.sign(
       { userId: newUser._id },
-      process.env.JWT_SECRET,
+      getAccessTokenSecret(),
       { expiresIn: '1h' },
     );
 
@@ -125,7 +162,7 @@ const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
     const decodedToken = decodeURIComponent(token);
-    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
+    const decoded = jwt.verify(decodedToken, getAccessTokenSecret());
 
     const user = await User.findById(decoded.userId);
     if (!user) return res.status(400).json({ message: 'Invalid token or user does not exist' });
@@ -133,14 +170,20 @@ const verifyEmail = async (req, res) => {
     const wasVerified = user.isVerified;
     if (!user.isVerified) {
       user.isVerified = true;
-      await user.save();
     }
 
-    const authPayload = buildAuthResponse(user);
-    setAuthCookie(res, authPayload.token);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    setAuthCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({
-      result: publicAuthPayload(authPayload),
+      accessToken,
+      refreshToken,
+      result: publicAuthPayload(user, accessToken, refreshToken),
       message: wasVerified ? 'Email is already verified' : 'Email verified successfully',
     });
   } catch {
@@ -154,7 +197,14 @@ const login = async (req, res) => {
     const validationError = validateLoginInput({ email, password });
     if (validationError) return res.status(400).json({ message: validationError });
 
-    const user = await User.findOne({ email: normalizeEmail(email) });
+    const cleanEmail = normalizeEmail(email);
+    let user = await User.findOne({ email: cleanEmail });
+    if (!user) {
+      user = await User.findOne({
+        email: new RegExp(`^${cleanEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i'),
+      });
+    }
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -168,11 +218,18 @@ const login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const authPayload = buildAuthResponse(user);
-    setAuthCookie(res, authPayload.token);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    setAuthCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({
-      result: publicAuthPayload(authPayload),
+      accessToken,
+      refreshToken,
+      result: publicAuthPayload(user, accessToken, refreshToken),
       message: 'Logged in successfully',
     });
   } catch (error) {
@@ -180,29 +237,82 @@ const login = async (req, res) => {
   }
 };
 
-const logout = (req, res) => {
-  res.clearCookie('token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    path: '/',
-  });
-  return res.status(200).json({ message: 'Logged out successfully' });
+const refresh = async (req, res) => {
+  try {
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
+    if (!incomingRefreshToken) {
+      clearAuthCookies(res);
+      return res.status(401).json({ success: false, message: 'Refresh token is required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(incomingRefreshToken, getRefreshTokenSecret());
+    } catch {
+      clearAuthCookies(res);
+      return res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user || user.refreshToken !== incomingRefreshToken) {
+      clearAuthCookies(res);
+      return res.status(403).json({ success: false, message: 'Refresh token has been revoked or is invalid' });
+    }
+
+    // Token Rotation: Generate new Access Token AND new Refresh Token
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+
+    user.refreshToken = newRefreshToken;
+    await user.save();
+
+    setAuthCookies(res, newAccessToken, newRefreshToken);
+
+    return res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      message: 'Token refreshed successfully',
+    });
+  } catch (error) {
+    clearAuthCookies(res);
+    return res.status(500).json({ success: false, message: 'Server error during token refresh', error: error.message });
+  }
+};
+
+const logout = async (req, res) => {
+  try {
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    const userId = req.user?.userId || req.user?._id;
+
+    if (userId) {
+      await User.findByIdAndUpdate(userId, { refreshToken: null });
+    } else if (incomingRefreshToken) {
+      await User.findOneAndUpdate({ refreshToken: incomingRefreshToken }, { refreshToken: null });
+    }
+
+    clearAuthCookies(res);
+    return res.status(200).json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    clearAuthCookies(res);
+    return res.status(500).json({ success: false, message: 'Error during logout', error: error.message });
+  }
 };
 
 const me = async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?._id;
-    const user = await User.findById(userId).select('-password');
+    const user = await User.findById(userId).select('-password -refreshToken');
 
     if (!user) {
       return res.status(401).json({ message: 'User session is no longer valid' });
     }
 
-    return res.status(200).json({ user });
+    return res.status(200).json({ user: sanitizeUser(user) });
   } catch (error) {
     return res.status(500).json({ message: 'Unable to load current user', error: error.message });
   }
 };
 
-module.exports = { signup, verifyEmail, login, logout, me };
+module.exports = { signup, verifyEmail, login, refresh, logout, me };

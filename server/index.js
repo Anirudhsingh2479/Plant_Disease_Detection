@@ -35,7 +35,17 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174", process.env.CLIENT_URL].filter(Boolean),
+    origin: (origin, callback) => {
+      // In development, allow any local network origin (localhost, 127.0.0.1, 192.168.x.x, etc.)
+      if (!origin || process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+      const allowedOrigins = ["http://localhost:5173", "http://localhost:5174", process.env.CLIENT_URL].filter(Boolean);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie", "x-request-source"],

@@ -19,7 +19,7 @@ export const loginUser = createAsyncThunk(
         try {
             const response = await axiosInstance.post('/auth/login', credentials);
             return response.data;
-        } catch(error) {
+        } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Login Failed');
         }
     },
@@ -31,7 +31,7 @@ export const registerUser = createAsyncThunk(
         try {
             const response = await axiosInstance.post('/auth/signup', userData);
             return response.data;
-        } catch(error) {
+        } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Registration Failed');
         }
     },
@@ -43,8 +43,20 @@ export const verifyEmailToken = createAsyncThunk(
         try {
             const response = await axiosInstance.get(`/auth/verify/${encodeURIComponent(token)}`);
             return response.data;
-        } catch(error) {
+        } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Email verification failed');
+        }
+    },
+);
+
+export const refreshTokenThunk = createAsyncThunk(
+    'auth/refreshToken',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post('/auth/refresh');
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Token refresh failed');
         }
     },
 );
@@ -52,9 +64,15 @@ export const verifyEmailToken = createAsyncThunk(
 export const logoutUser = createAsyncThunk(
     'auth/logoutUser',
     async () => {
-        await axiosInstance.post('/auth/logout');
+        try {
+            await axiosInstance.post('/auth/logout');
+        } catch {
+            // Ignore network errors on logout to ensure client resets state regardless
+        }
     },
 );
+
+const extractUser = (payload) => payload?.result?.user || payload?.user || null;
 
 const authSlice = createSlice({
     name: 'auth',
@@ -77,7 +95,7 @@ const authSlice = createSlice({
         .addCase(checkAuth.fulfilled, (state, action) => {
             state.isLoading = false;
             state.authChecked = true;
-            state.user = action.payload.user;
+            state.user = extractUser(action.payload);
             state.error = null;
         })
         .addCase(checkAuth.rejected, (state) => {
@@ -92,7 +110,7 @@ const authSlice = createSlice({
         .addCase(loginUser.fulfilled, (state, action) => {
             state.isLoading = false;
             state.authChecked = true;
-            state.user = action.payload.result.user;
+            state.user = extractUser(action.payload);
             state.error = null;
         })
         .addCase(loginUser.rejected, (state, action) => {
@@ -119,7 +137,7 @@ const authSlice = createSlice({
         .addCase(verifyEmailToken.fulfilled, (state, action) => {
             state.isLoading = false;
             state.authChecked = true;
-            state.user = action.payload.result.user;
+            state.user = extractUser(action.payload);
             state.error = null;
         })
         .addCase(verifyEmailToken.rejected, (state, action) => {
@@ -127,6 +145,9 @@ const authSlice = createSlice({
             state.authChecked = true;
             state.user = null;
             state.error = action.payload || 'Email verification failed';
+        })
+        .addCase(refreshTokenThunk.rejected, (state) => {
+            state.user = null;
         })
         .addCase(logoutUser.fulfilled, (state) => {
             state.user = null;

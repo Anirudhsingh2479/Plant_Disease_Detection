@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, CircularProgress, Paper, Typography } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import axiosInstance from '../../api/axiosInstance';
 
-// Keep your image import here!
 import Plant_image from '../../assets/Plant_image1.png';
 
 const LiveDemo = () => {
+  const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [authPrompt, setAuthPrompt] = useState(false);
 
   const previewUrl = useMemo(
     () => (selectedFile ? URL.createObjectURL(selectedFile) : Plant_image),
@@ -22,7 +28,6 @@ const LiveDemo = () => {
     if (!selectedFile) {
       return undefined;
     }
-
     return () => {
       URL.revokeObjectURL(previewUrl);
     };
@@ -34,13 +39,13 @@ const LiveDemo = () => {
       setSelectedFile(file);
       setAnalysisMessage('');
       setErrorMessage('');
+      setAuthPrompt(false);
     }
   };
 
   const handleDrag = (event) => {
     event.preventDefault();
     event.stopPropagation();
-
     if (event.type === 'dragenter' || event.type === 'dragover') {
       setDragActive(true);
     } else if (event.type === 'dragleave') {
@@ -58,15 +63,24 @@ const LiveDemo = () => {
       setSelectedFile(file);
       setAnalysisMessage('');
       setErrorMessage('');
+      setAuthPrompt(false);
     }
   };
 
   const handleAnalyze = async () => {
     if (!selectedFile) return;
 
+    if (!user) {
+      setAuthPrompt(true);
+      setAnalysisMessage('');
+      setErrorMessage('');
+      return;
+    }
+
     setIsAnalyzing(true);
     setAnalysisMessage('');
     setErrorMessage('');
+    setAuthPrompt(false);
 
     try {
       const formData = new FormData();
@@ -97,26 +111,33 @@ const LiveDemo = () => {
     }
   };
 
+  const badgeText = useMemo(() => {
+    if (analysisMessage && user) return analysisMessage;
+    if (authPrompt) return 'Sign in required to view prediction';
+    return 'Upload and analyze to see result';
+  }, [analysisMessage, authPrompt, user]);
+
   return (
-    // The main container is now a flex row
     <Box sx={{ 
       display: 'flex', 
-      flexDirection: { xs: 'column', md: 'row' }, // Stacks on mobile, side-by-side on desktop
+      flexDirection: { xs: 'column', sm: 'row' }, 
       gap: 3, 
       width: '100%',
-      alignItems: 'stretch' // Makes both boxes the same height
+      height: { xs: 'auto', sm: '380px', md: '410px' },
+      alignItems: 'stretch'
     }}>
       
-      {/* --- LEFT SIDE: THE LEAF IMAGE --- */}
+      {/* --- LEFT SIDE: LEAF IMAGE PREVIEW CARD --- */}
       <Paper 
         elevation={8} 
         sx={{ 
           position: 'relative', 
           borderRadius: 4, 
           overflow: 'hidden',
-          flex: 1, // Takes up equal space
+          flex: { xs: '1 1 100%', sm: '1 1 50%' },
+          height: { xs: '320px', sm: '100%' },
+          minWidth: 0,
           backgroundColor: '#1a1a1a',
-          minHeight: '250px' // Ensures it doesn't collapse too small
         }}
       >
         <Box
@@ -131,27 +152,31 @@ const LiveDemo = () => {
           }}
         />
 
-        {/* The Diagnosis Badge */}
+        {/* Diagnosis Badge */}
         <Box
           sx={{
             position: 'absolute',
-            bottom: 16,
-            right: 16,
-            backgroundColor: '#ffdac7',
-            color: '#5c2b18',
-            padding: '6px 18px',
+            bottom: 14,
+            right: 14,
+            backgroundColor: authPrompt ? '#fee2e2' : '#ffdac7',
+            color: authPrompt ? '#991b1b' : '#5c2b18',
+            padding: '6px 14px',
             borderRadius: '24px',
             fontWeight: 700,
-            fontFamily: 'inherit',
-            fontSize: '0.9rem',
+            fontSize: '0.8rem',
             boxShadow: '0px 4px 12px rgba(0,0,0,0.25)',
+            maxWidth: 'calc(100% - 28px)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            zIndex: 2,
           }}
         >
-          {analysisMessage || 'Upload and analyze to see result'}
+          {badgeText}
         </Box>
       </Paper>
 
-      {/* --- RIGHT SIDE: DRAG & DROP ZONE --- */}
+      {/* --- RIGHT SIDE: DRAG & DROP ZONE CARD --- */}
       <input
         accept="image/*"
         id="landing-file-input"
@@ -172,67 +197,111 @@ const LiveDemo = () => {
           backgroundColor: 'rgba(255, 255, 255, 0.6)', 
           backdropFilter: 'blur(10px)',
           borderRadius: 4, 
-          p: 4, 
+          p: { xs: 2, sm: 3 }, 
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center', // Centers content vertically
-          alignItems: 'center',     // Centers content horizontally
-          flex: 1, // Takes up equal space
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flex: { xs: '1 1 100%', sm: '1 1 50%' },
+          height: { xs: '320px', sm: '100%' },
+          minWidth: 0,
           textAlign: 'center', 
-          transition: 'all 0.3s ease', 
+          transition: 'border-color 0.2s ease, background-color 0.2s ease', 
           cursor: 'pointer',
           '&:hover': { borderColor: '#2e7d32', backgroundColor: 'rgba(255, 255, 255, 0.9)' }
         }}
       >
-        <CloudUploadIcon sx={{ fontSize: 40, color: '#2e7d32', mb: 1 }} />
-        <Typography variant="subtitle1" fontWeight="bold" color="text.primary">
-          Drag & Drop your leaf photo
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          {selectedFile ? selectedFile.name : 'High-res JPG or PNG (Max 5MB)'}
-        </Typography>
+        {/* Top Header Section */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 1 }}>
+          <CloudUploadIcon sx={{ fontSize: { xs: 36, sm: 42 }, color: '#2e7d32', mb: 0.5 }} />
+          <Typography variant="h6" fontWeight="bold" color="text.primary" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' } }}>
+            Drag & Drop your leaf photo
+          </Typography>
+          <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: '280px' }}>
+            {selectedFile ? selectedFile.name : 'High-res JPG or PNG (Max 5MB)'}
+          </Typography>
+        </Box>
 
-        {analysisMessage && (
-          <Alert severity="success" sx={{ mt: 2, width: '100%' }}>
-            Detected: {analysisMessage}
-          </Alert>
-        )}
-
-        {errorMessage && (
-          <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
-            {errorMessage}
-          </Alert>
-        )}
-
-        <label htmlFor="landing-file-input">
-          <Button
-            component="span"
-            variant="outlined"
-            color="success"
-            sx={{ mt: 2, borderRadius: 5, textTransform: 'none' }}
-          >
-            {selectedFile ? 'Change File' : 'Browse Files'}
-          </Button>
-        </label>
-
-        <Button
-          variant="contained"
-          color="success"
-          onClick={handleAnalyze}
-          disabled={!selectedFile || isAnalyzing}
-          sx={{ mt: 2, borderRadius: 5, textTransform: 'none' }}
-        >
-          {isAnalyzing ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CircularProgress size={18} color="inherit" />
-              Analyzing...
-            </Box>
-          ) : (
-            'Analyze Leaf'
+        {/* Dedicated Alert / Message Container Slot */}
+        <Box sx={{ minHeight: '64px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', px: 1 }}>
+          {authPrompt && (
+            <Alert 
+              severity="warning" 
+              icon={<LockOutlinedIcon fontSize="small" />}
+              action={
+                <Button color="inherit" size="small" onClick={() => navigate('/login')} sx={{ fontWeight: 'bold', minWidth: 'auto' }}>
+                  Sign In
+                </Button>
+              }
+              sx={{ width: '100%', textAlign: 'left', borderRadius: 2, py: 0.5, fontSize: '0.8rem' }}
+            >
+              Please sign in to view disease diagnosis or use our AI chatbot!
+            </Alert>
           )}
-        </Button>
-      </Paper>
 
+          {analysisMessage && user && (
+            <Alert severity="success" sx={{ width: '100%', textAlign: 'left', borderRadius: 2, py: 0.5, fontSize: '0.8rem' }}>
+              Detected: {analysisMessage}
+            </Alert>
+          )}
+
+          {errorMessage && (
+            <Alert severity="error" sx={{ width: '100%', textAlign: 'left', borderRadius: 2, py: 0.5, fontSize: '0.8rem' }}>
+              {errorMessage}
+            </Alert>
+          )}
+        </Box>
+
+        {/* Bottom Action Buttons */}
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: 'center', pb: 1 }}>
+          <label htmlFor="landing-file-input">
+            <Button
+              component="span"
+              variant="outlined"
+              color="success"
+              sx={{ borderRadius: 5, textTransform: 'none', px: 2.5, py: 0.75, fontSize: '0.875rem' }}
+            >
+              {selectedFile ? 'Change File' : 'Browse Files'}
+            </Button>
+          </label>
+
+          {authPrompt ? (
+            <Button
+              variant="contained"
+              onClick={() => navigate('/login')}
+              startIcon={<LockOutlinedIcon />}
+              sx={{ 
+                borderRadius: 5, 
+                textTransform: 'none', 
+                px: 2.5,
+                py: 0.75,
+                fontSize: '0.875rem',
+                backgroundColor: '#2e7d32', 
+                '&:hover': { backgroundColor: '#1b5e20' } 
+              }}
+            >
+              Sign In to View Diagnosis
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handleAnalyze}
+              disabled={!selectedFile || isAnalyzing}
+              sx={{ borderRadius: 5, textTransform: 'none', px: 2.5, py: 0.75, fontSize: '0.875rem' }}
+            >
+              {isAnalyzing ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={16} color="inherit" />
+                  Analyzing...
+                </Box>
+              ) : (
+                'Analyze Leaf'
+              )}
+            </Button>
+          )}
+        </Box>
+      </Paper>
     </Box>
   );
 };
