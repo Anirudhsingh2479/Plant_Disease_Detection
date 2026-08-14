@@ -146,14 +146,14 @@ const ProfilePage = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f8fafc', py: 4 }}>
-      <Container maxWidth="lg">
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f8fafc', py: { xs: 2, sm: 4 }, width: '100%' }}>
+      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3, md: 4 }, width: '100%' }}>
         {/* Navigation Top Bar */}
-        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
           <Button
             startIcon={<ArrowBackIcon />}
             onClick={() => navigate('/dashboard')}
-            sx={{ color: '#2e7d32', fontWeight: 700, textTransform: 'none' }}
+            sx={{ color: '#2e7d32', fontWeight: 700, textTransform: 'none', px: 0 }}
           >
             Back to Dashboard
           </Button>
@@ -163,7 +163,7 @@ const ProfilePage = () => {
             onClick={handleLogout}
             color="error"
             variant="outlined"
-            sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600 }}
+            sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600, px: 2, py: 0.75 }}
           >
             Sign Out
           </Button>
@@ -173,22 +173,23 @@ const ProfilePage = () => {
         <Paper
           elevation={0}
           sx={{
-            p: 4,
-            mb: 4,
+            p: { xs: 2.5, sm: 4 },
+            mb: 3,
             borderRadius: 4,
             background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)',
             color: '#fff',
             boxShadow: '0 10px 30px rgba(46, 125, 50, 0.2)',
+            width: '100%',
           }}
         >
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: { xs: 2, sm: 3 } }}>
             <Avatar
               sx={{
-                width: 88,
-                height: 88,
+                width: { xs: 72, sm: 88 },
+                height: { xs: 72, sm: 88 },
                 backgroundColor: '#ffffff',
                 color: '#2e7d32',
-                fontSize: '2.2rem',
+                fontSize: { xs: '1.8rem', sm: '2.2rem' },
                 fontWeight: 800,
                 boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
               }}
@@ -196,9 +197,9 @@ const ProfilePage = () => {
               {getInitials(user?.name)}
             </Avatar>
 
-            <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+            <Box sx={{ textAlign: { xs: 'center', sm: 'left' }, width: '100%' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-                <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                <Typography variant="h4" sx={{ fontWeight: 800, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.25rem' } }}>
                   {user?.name || 'User Profile'}
                 </Typography>
                 {user?.isVerified && (
@@ -211,7 +212,7 @@ const ProfilePage = () => {
                 )}
               </Box>
 
-              <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5 }}>
+              <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5, wordBreak: 'break-all' }}>
                 {user?.email}
               </Typography>
 
@@ -225,11 +226,11 @@ const ProfilePage = () => {
         </Paper>
 
         {/* Stats Row */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={4}>
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #e2e8f0', textAlign: 'center' }}>
-              <HistoryIcon sx={{ fontSize: 36, color: '#2e7d32', mb: 1 }} />
-              <Typography variant="h4" fontWeight="800" color="#1e293b">
+        <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 3, width: '100%', m: 0 }}>
+          <Grid item xs={12} sm={4} sx={{ display: 'flex', width: '100%', pl: '0 !important', pt: { xs: 2, sm: 0 } }}>
+            <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, borderRadius: 3, border: '1px solid #e2e8f0', textAlign: 'center', width: '100%', flex: 1 }}>
+              <HistoryIcon sx={{ fontSize: { xs: 30, sm: 36 }, color: '#2e7d32', mb: 1 }} />
+              <Typography variant="h4" fontWeight="800" color="#1e293b" sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }}>
                 {stats.total}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -238,10 +239,10 @@ const ProfilePage = () => {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} sm={4}>
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #e2e8f0', textAlign: 'center' }}>
-              <CheckCircleIcon sx={{ fontSize: 36, color: '#16a34a', mb: 1 }} />
-              <Typography variant="h4" fontWeight="800" color="#16a34a">
+          <Grid item xs={12} sm={4} sx={{ display: 'flex', width: '100%', pl: { xs: '0 !important', sm: '24px !important' }, pt: { xs: 2, sm: 0 } }}>
+            <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, borderRadius: 3, border: '1px solid #e2e8f0', textAlign: 'center', width: '100%', flex: 1 }}>
+              <CheckCircleIcon sx={{ fontSize: { xs: 30, sm: 36 }, color: '#16a34a', mb: 1 }} />
+              <Typography variant="h4" fontWeight="800" color="#16a34a" sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }}>
                 {stats.healthy}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -250,10 +251,10 @@ const ProfilePage = () => {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} sm={4}>
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #e2e8f0', textAlign: 'center' }}>
-              <WarningAmberIcon sx={{ fontSize: 36, color: '#dc2626', mb: 1 }} />
-              <Typography variant="h4" fontWeight="800" color="#dc2626">
+          <Grid item xs={12} sm={4} sx={{ display: 'flex', width: '100%', pl: { xs: '0 !important', sm: '24px !important' }, pt: { xs: 2, sm: 0 } }}>
+            <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, borderRadius: 3, border: '1px solid #e2e8f0', textAlign: 'center', width: '100%', flex: 1 }}>
+              <WarningAmberIcon sx={{ fontSize: { xs: 30, sm: 36 }, color: '#dc2626', mb: 1 }} />
+              <Typography variant="h4" fontWeight="800" color="#dc2626" sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }}>
                 {stats.infected}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -264,10 +265,10 @@ const ProfilePage = () => {
         </Grid>
 
         {/* Profile Settings Cards */}
-        <Grid container spacing={4} sx={{ mb: 5 }}>
+        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }} sx={{ mb: 4, width: '100%', m: 0 }}>
           {/* Edit Profile */}
-          <Grid item xs={12} md={6}>
-            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0', height: '100%' }}>
+          <Grid item xs={12} md={6} sx={{ display: 'flex', width: '100%', pl: '0 !important', pt: { xs: 2, md: 0 } }}>
+            <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, borderRadius: 4, border: '1px solid #e2e8f0', width: '100%', flex: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                 <PersonOutlinedIcon sx={{ color: '#2e7d32', fontSize: 28 }} />
                 <Typography variant="h6" fontWeight="700">
@@ -281,7 +282,7 @@ const ProfilePage = () => {
               {profileError && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{profileError}</Alert>}
 
               <form onSubmit={handleUpdateProfile}>
-                <Stack spacing={3}>
+                <Stack spacing={2.5}>
                   <TextField
                     label="Full Name"
                     variant="outlined"
@@ -322,8 +323,8 @@ const ProfilePage = () => {
           </Grid>
 
           {/* Change Password */}
-          <Grid item xs={12} md={6}>
-            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0', height: '100%' }}>
+          <Grid item xs={12} md={6} sx={{ display: 'flex', width: '100%', pl: { xs: '0 !important', md: '24px !important' }, pt: { xs: 2, md: 0 } }}>
+            <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, borderRadius: 4, border: '1px solid #e2e8f0', width: '100%', flex: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                 <SecurityIcon sx={{ color: '#2e7d32', fontSize: 28 }} />
                 <Typography variant="h6" fontWeight="700">
@@ -393,7 +394,7 @@ const ProfilePage = () => {
         </Grid>
 
         {/* --- RECENT PLANT ANALYSIS & DIAGNOSIS HISTORY SECTION --- */}
-        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e2e8f0' }}>
+        <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, borderRadius: 4, border: '1px solid #e2e8f0', width: '100%' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <AnalyticsIcon sx={{ color: '#2e7d32', fontSize: 28 }} />
@@ -422,20 +423,24 @@ const ProfilePage = () => {
               </Typography>
             </Box>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ width: '100%', m: 0 }}>
               {historyList.slice(0, 6).map((item, index) => {
                 const isHealthy = String(item.diseaseName || '').toLowerCase().includes('healthy');
                 const confidence = Number(item.confidence || 0);
                 const confidenceStr = confidence > 1 ? confidence.toFixed(1) : (confidence * 100).toFixed(1);
 
                 return (
-                  <Grid item xs={12} sm={6} md={4} key={item._id || index}>
+                  <Grid item xs={12} sm={6} md={4} key={item._id || index} sx={{ display: 'flex', width: '100%', p: '12px !important' }}>
                     <Card
                       elevation={0}
                       sx={{
                         borderRadius: 3,
                         border: '1px solid #e2e8f0',
                         overflow: 'hidden',
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
                         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                         '&:hover': {
                           transform: 'translateY(-4px)',
