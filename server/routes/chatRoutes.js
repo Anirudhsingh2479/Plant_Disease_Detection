@@ -16,43 +16,60 @@ const generateFallbackChatResponse = async (userMessage, detectedDisease) => {
   const disease = detectedDisease || 'Plant Disease Care';
 
   if (apiKey) {
-    try {
-      const prompt = `You are KrishiMitra AI, a professional agricultural scientist and plant pathologist assistant. 
-Context: User is asking about plant health. Detected Disease Context: ${disease}.
+    const modelsToTry = [
+      'gemini-flash-latest',
+      'gemini-2.5-flash-lite',
+      'gemini-3.5-flash',
+      'gemini-3.7-flash',
+    ];
+
+    for (const model of modelsToTry) {
+      try {
+        const prompt = `You are KrishiMitra AI, a professional agricultural scientist and plant pathologist assistant. 
+Context: User is asking about plant health. Detected Disease Context: "${disease}".
 User Question: "${userMessage}".
-Provide concise, practical, actionable agricultural advice including cures, organic/chemical treatments, or precautions where relevant. Keep the response friendly, clear, and bulleted if helpful.`;
+Provide concise, practical, actionable agricultural advice answering the user's specific question directly. Use bullet points and clear formatting.`;
 
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          contents: [{ parts: [{ text: prompt }] }],
-        },
-        { timeout: 10000 }
-      );
+        const response = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            contents: [{ parts: [{ text: prompt }] }],
+          },
+          { timeout: 10000 }
+        );
 
-      const candidateText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (candidateText) {
-        return candidateText;
+        const candidateText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (candidateText && candidateText.trim()) {
+          return candidateText.trim();
+        }
+      } catch (geminiError) {
+        console.warn(`Gemini model ${model} warning:`, geminiError.message);
       }
-    } catch (geminiError) {
-      console.warn('Gemini API fallback warning:', geminiError.message);
     }
   }
 
-  // Smart agricultural knowledge engine fallback
-  if (msgLower.includes('cure') || msgLower.includes('treatment') || msgLower.includes('remedy')) {
-    return `For managing **${disease}**:\n1. **Fungicide Treatment**: Apply copper-based or chlorothalonil fungicides every 7–10 days.\n2. **Pruning**: Trim and safely dispose of heavily infected lower leaves.\n3. **Watering**: Use drip irrigation to keep foliage dry and prevent fungal spore spread.`;
+  // Enhanced agricultural NLP fallback matching engine
+  if (msgLower.includes('fruit') || msgLower.includes('tuber') || msgLower.includes('effect') || msgLower.includes('harvest') || msgLower.includes('yield')) {
+    return `**Effect of ${disease} on fruit/yield**:\n• **Tuber/Fruit Damage**: Fungal infections cause dark, sunken, corky rot spots on tubers and fruits.\n• **Yield Loss**: Premature defoliation reduces photosynthesis, leading to significantly smaller fruit size and stunted crop yield.\n• **Post-Harvest Rot**: Infected fruits rot quickly during storage if stored in warm, humid conditions.`;
   }
 
-  if (msgLower.includes('precaution') || msgLower.includes('prevent') || msgLower.includes('stop')) {
-    return `Key preventive measures for **${disease}**:\n• Practice crop rotation with non-host crops every 2-3 years.\n• Ensure adequate plant spacing for healthy airflow.\n• Apply organic neem oil as a preventive spray during high humidity.`;
+  if (msgLower.includes('cure') || msgLower.includes('treatment') || msgLower.includes('remedy') || msgLower.includes('heal') || msgLower.includes('fix')) {
+    return `For managing and curing **${disease}**:\n1. **Fungicide Spray**: Apply copper-based or chlorothalonil organic fungicides every 7–10 days.\n2. **Pruning**: Trim and safely burn/dispose of heavily infected leaves.\n3. **Irrigation Control**: Water near the roots using drip irrigation; avoid overhead sprinklers to keep leaves dry.`;
   }
 
-  if (msgLower.includes('cause') || msgLower.includes('reason') || msgLower.includes('why')) {
-    return `**${disease}** is typically caused by fungal or bacterial pathogens thriving in high humidity, damp foliage, and warm temperatures (20°C–30°C). Airflow and splashing water spread the spores.`;
+  if (msgLower.includes('precaution') || msgLower.includes('prevent') || msgLower.includes('stop') || msgLower.includes('protect')) {
+    return `Key preventive measures for **${disease}**:\n• Practice crop rotation with non-solanaceous crops every 2-3 years.\n• Ensure adequate spacing between plants to maximize airflow.\n• Apply preventive neem oil spray every 14 days during warm, humid conditions.`;
   }
 
-  return `Hello! As your KrishiMitra AI Assistant, I recommend inspecting your plants for early signs of **${disease}**. Maintain proper soil drainage, avoid overhead watering, and apply recommended organic neem oil or copper fungicides if symptoms persist. Let me know if you need specific treatment details!`;
+  if (msgLower.includes('cause') || msgLower.includes('reason') || msgLower.includes('why') || msgLower.includes('spread')) {
+    return `**${disease}** is caused by fungal spores (*Alternaria solani* / *Phytophthora*) thriving in high humidity, wet leaf moisture, and warm temperatures (20°C–30°C). Rain splashing and wind carry spores to healthy plants.`;
+  }
+
+  if (msgLower.includes('symptom') || msgLower.includes('identify') || msgLower.includes('look') || msgLower.includes('spot')) {
+    return `Common symptoms of **${disease}**:\n• Concentric dark brown "target-like" rings on mature leaves.\n• Yellow halos surrounding leaf spots.\n• Yellowing and drooping of lower foliage.`;
+  }
+
+  return `Regarding **${disease}**: For the query "${userMessage}", ensure proper plant hygiene, apply copper-based fungicides if symptoms persist, and keep foliage dry with drip irrigation. Feel free to ask about specific cures, fruit impact, or preventive measures!`;
 };
 
 router.post('/', requireAuth, async (req, res) => {
@@ -161,7 +178,6 @@ router.get('/stream', requireAuth, async (req, res) => {
     try {
       const fallbackText = await generateFallbackChatResponse(user_message, detected_disease);
       
-      // Stream fallback response text in natural chunks
       const words = fallbackText.split(' ');
       let index = 0;
       const interval = setInterval(() => {
