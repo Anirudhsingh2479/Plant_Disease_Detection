@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Typography, Grid, CircularProgress, Alert, Paper } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Paper } from '@mui/material';
 import HistoryIcon from '@mui/icons-material/History';
 import HistoryCard from './HistoryCard';
 import axiosInstance from '../../api/axiosInstance';
@@ -51,98 +51,113 @@ const HistorySection = ({ refreshKey = 0, onGetRemedy }) => {
     );
   }
 
+  const healthyCount = history.filter(d => String(d.diseaseName || '').toLowerCase().includes('healthy')).length;
+  const infectedCount = history.length - healthyCount;
+  const avgConfidence = history.length > 0
+    ? (history.reduce((acc, d) => acc + (d.confidence > 1 ? d.confidence : d.confidence * 100), 0) / history.length).toFixed(0)
+    : 0;
+
   return (
-    <Box sx={{ mt: 5, mb: 5, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3, width: '100%', justifyContent: 'center' }}>
+    <Box sx={{ mt: 2, mb: 5, width: '100%' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3, justifyContent: 'center' }}>
         <HistoryIcon sx={{ color: '#2e7d32', fontSize: 28 }} />
         <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1b5e20' }}>
           Your Diagnosis History
         </Typography>
       </Box>
 
-      {/* Stats Summary */}
+      {/* Stats Summary Panel */}
       {history.length > 0 && (
-        <Grid container spacing={2} sx={{ mb: 4, display: 'flex', justifyContent: 'center', width: '100%' }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper
-              sx={{
-                p: 2,
-                background: 'linear-gradient(135deg, rgba(46, 125, 50, 0.1) 0%, rgba(46, 125, 50, 0.05) 100%)',
-                border: '1px solid rgba(46, 125, 50, 0.2)',
-                borderRadius: 2,
-                textAlign: 'center'
-              }}
-            >
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
-                {history.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total Diagnoses
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper
-              sx={{
-                p: 2,
-                background: 'linear-gradient(135deg, rgba(46, 125, 50, 0.1) 0%, rgba(46, 125, 50, 0.05) 100%)',
-                border: '1px solid rgba(46, 125, 50, 0.2)',
-                borderRadius: 2,
-                textAlign: 'center'
-              }}
-            >
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
-                {history.filter(d => d.diseaseName.toLowerCase() === 'healthy').length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Healthy Plants
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper
-              sx={{
-                p: 2,
-                background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(211, 47, 47, 0.05) 100%)',
-                border: '1px solid rgba(211, 47, 47, 0.2)',
-                borderRadius: 2,
-                textAlign: 'center'
-              }}
-            >
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#d32f2f' }}>
-                {history.filter(d => d.diseaseName.toLowerCase() !== 'healthy').length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Infected Plants
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper
-              sx={{
-                p: 2,
-                background: 'linear-gradient(135deg, rgba(46, 125, 50, 0.1) 0%, rgba(46, 125, 50, 0.05) 100%)',
-                border: '1px solid rgba(46, 125, 50, 0.2)',
-                borderRadius: 2,
-                textAlign: 'center'
-              }}
-            >
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
-                {(history.reduce((acc, d) => acc + d.confidence, 0) / history.length * 100).toFixed(0)}%
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Avg Confidence
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' },
+            gap: 2,
+            mb: 4,
+            width: '100%',
+          }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              background: 'linear-gradient(135deg, rgba(46, 125, 50, 0.1) 0%, rgba(46, 125, 50, 0.05) 100%)',
+              border: '1px solid rgba(46, 125, 50, 0.2)',
+              borderRadius: 3,
+              textAlign: 'center'
+            }}
+          >
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
+              {history.length}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Total Diagnoses
+            </Typography>
+          </Paper>
+
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              background: 'linear-gradient(135deg, rgba(46, 125, 50, 0.1) 0%, rgba(46, 125, 50, 0.05) 100%)',
+              border: '1px solid rgba(46, 125, 50, 0.2)',
+              borderRadius: 3,
+              textAlign: 'center'
+            }}
+          >
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
+              {healthyCount}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Healthy Plants
+            </Typography>
+          </Paper>
+
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(211, 47, 47, 0.05) 100%)',
+              border: '1px solid rgba(211, 47, 47, 0.2)',
+              borderRadius: 3,
+              textAlign: 'center'
+            }}
+          >
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#d32f2f' }}>
+              {infectedCount}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Infected Plants
+            </Typography>
+          </Paper>
+
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              background: 'linear-gradient(135deg, rgba(46, 125, 50, 0.1) 0%, rgba(46, 125, 50, 0.05) 100%)',
+              border: '1px solid rgba(46, 125, 50, 0.2)',
+              borderRadius: 3,
+              textAlign: 'center'
+            }}
+          >
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
+              {avgConfidence}%
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Avg Confidence
+            </Typography>
+          </Paper>
+        </Box>
       )}
 
-      {/* History Cards or Empty State */}
+      {/* History Cards Grid */}
       {history.length === 0 ? (
         <Paper
+          elevation={0}
           sx={{
             p: 6,
+            mx: 'auto',
             textAlign: 'center',
             background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 253, 244, 0.9) 100%)',
             border: '1px solid rgba(46, 125, 50, 0.1)',
@@ -161,14 +176,18 @@ const HistorySection = ({ refreshKey = 0, onGetRemedy }) => {
           </Typography>
         </Paper>
       ) : (
-        <Grid container spacing={3} sx={{ width: '100%', alignItems: 'stretch' }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 3,
+            width: '100%',
+          }}
+        >
           {history.map((diagnosis) => (
-            <Grid item xs={12} sm={6} md={4} key={diagnosis._id} sx={{ display: 'flex', height: '100%' }}>
-              {/* Passing the individual diagnosis data into the card we built earlier */}
-              <HistoryCard diagnosis={diagnosis} onGetRemedy={onGetRemedy} />
-            </Grid>
+            <HistoryCard key={diagnosis._id} diagnosis={diagnosis} onGetRemedy={onGetRemedy} />
           ))}
-        </Grid>
+        </Box>
       )}
     </Box>
   );
@@ -178,4 +197,5 @@ export default HistorySection;
 
 HistorySection.propTypes = {
   refreshKey: PropTypes.number,
+  onGetRemedy: PropTypes.func,
 };

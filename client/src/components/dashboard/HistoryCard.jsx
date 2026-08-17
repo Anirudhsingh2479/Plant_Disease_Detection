@@ -58,11 +58,12 @@ const HistoryCard = ({ diagnosis, onGetRemedy }) => {
           border: '1px solid #e2e8f0',
           borderRadius: 3,
           overflow: 'hidden',
+          outline: 'none',
           transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
           '&:hover': {
             boxShadow: '0 12px 24px rgba(46, 125, 50, 0.12)',
             transform: 'translateY(-4px)',
-            borderColor: 'rgba(46, 125, 50, 0.3)'
+            borderColor: '#2e7d32'
           }
         }}
       >
@@ -73,16 +74,20 @@ const HistoryCard = ({ diagnosis, onGetRemedy }) => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'stretch',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            outline: 'none',
+            '&:focus': { outline: 'none' },
+            '& .MuiCardActionArea-focusHighlight': { opacity: 0 }
           }}
         >
-          <Box sx={{ position: 'relative', height: 200, backgroundColor: '#f1f5f9' }}>
+          {/* Consistent Fixed-Height Image Container */}
+          <Box sx={{ position: 'relative', height: 200, backgroundColor: '#f1f5f9', overflow: 'hidden' }}>
             <CardMedia
               component="img"
               height="200"
               image={imageSrc}
               alt={diagnosis?.diseaseName || 'Plant Leaf'}
-              sx={{ objectFit: 'cover', width: '100%' }}
+              sx={{ objectFit: 'cover', width: '100%', height: '200px', display: 'block' }}
             />
             {/* Status Badge */}
             <Box
@@ -112,8 +117,9 @@ const HistoryCard = ({ diagnosis, onGetRemedy }) => {
             </Box>
           </Box>
 
+          {/* Consistent Fixed Content Block */}
           <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', p: 2.5 }}>
-            <Box sx={{ minHeight: 48 }}>
+            <Box sx={{ height: 52, display: 'flex', alignItems: 'center' }}>
               <Typography 
                 variant="subtitle1" 
                 sx={{ 
@@ -132,7 +138,7 @@ const HistoryCard = ({ diagnosis, onGetRemedy }) => {
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto', pt: 1 }}>
               <Chip
                 label={`${confidence.toFixed(1)}% Confidence`}
                 size="small"

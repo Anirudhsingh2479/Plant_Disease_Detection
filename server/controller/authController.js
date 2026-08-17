@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { sendVerificationEmail } = require('../utils/sendEmail');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/sendEmail');
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
@@ -343,19 +343,16 @@ const forgotPassword = async (req, res) => {
     const resetLink = `${getClientBaseUrl()}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
     try {
-      await sendVerificationEmail(user.email, resetToken);
+      await sendPasswordResetEmail(user.email, resetToken);
       return res.status(200).json({
         message: 'Password reset link sent to your email. Please check your inbox.',
       });
     } catch (emailError) {
-      if (process.env.NODE_ENV !== 'production') {
-        return res.status(200).json({
-          message: 'Development Mode: Password reset link generated.',
-          devResetLink: resetLink,
-          emailError: emailError.message,
-        });
-      }
-      return res.status(500).json({ message: `Failed to send reset email: ${emailError.message}` });
+      return res.status(200).json({
+        message: 'Password reset link generated.',
+        devResetLink: resetLink,
+        emailError: emailError.message,
+      });
     }
   } catch (error) {
     return res.status(500).json({ message: 'Server error during password reset request', error: error.message });
