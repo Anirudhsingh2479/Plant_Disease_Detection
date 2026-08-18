@@ -66,6 +66,7 @@ coverage/
 # Temporary files
 tmp/
 temp/
+scratch/
 *.tmp
 
 # Database files

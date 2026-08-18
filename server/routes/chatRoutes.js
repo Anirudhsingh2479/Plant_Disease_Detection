@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const { requireAuth } = require('../middleware/authMiddleware');
-const ChatMessage = require('../models/ChatMessage');
+const ChatSession = require('../models/ChatSession');
 
 const router = express.Router();
 
@@ -11,19 +11,103 @@ const STREAM_TIMEOUT_MS = Number(process.env.CHAT_STREAM_TIMEOUT_MS || 30000);
 
 const getAuthenticatedUserId = (req) => req.user?.userId || req.user?._id;
 
+// AI 1-line title generator (3-6 words, unique)
+const generateTitleWithAI = async (userPrompt, botResponse, detectedDisease) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const cleanPrompt = String(userPrompt || '').trim();
+
+  if (!cleanPrompt) return 'Plant Health Consultation';
+
+  if (apiKey) {
+    try {
+      const promptText = `Create a single concise 1-line title (3 to 6 words max, no quotes, no markdown, no emojis) summarizing this plant health discussion.
+Context Disease: "${detectedDisease || 'Plant Care'}"
+User Question: "${cleanPrompt}"
+Title:`;
+
+      const res = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+        { contents: [{ parts: [{ text: promptText }] }] },
+        { timeout: 5000 }
+      );
+
+      const candidate = res.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (candidate) {
+        const cleanTitle = candidate.replace(/["'#\n]/g, '').slice(0, 42).trim();
+        if (cleanTitle && cleanTitle.length > 3) {
+          return cleanTitle;
+        }
+      }
+    } catch (err) {
+      console.warn('AI title generation warning:', err.message);
+    }
+  }
+
+  const snippet = cleanPrompt.length > 25 ? `${cleanPrompt.slice(0, 25)}...` : cleanPrompt;
+  return detectedDisease ? `${detectedDisease}: ${snippet}` : snippet;
+};
+
 const saveMessageToHistory = async (userId, sessionId, sender, text, detectedDisease = '') => {
   if (!userId || !sessionId || !text) return;
   try {
-    await ChatMessage.create({
+    const diseaseName = String(detectedDisease || '').trim();
+    const cleanText = String(text).trim();
+
+    const existingSession = await ChatSession.findOne({ userId, sessionId });
+
+    // Deduplication check: Do not save identical consecutive user messages in the same session
+    if (sender === 'user' && existingSession && existingSession.messages && existingSession.messages.length > 0) {
+      const lastMsg = existingSession.messages[existingSession.messages.length - 1];
+      if (lastMsg.sender === 'user' && lastMsg.text === cleanText) {
+        return;
+      }
+    }
+
+    let titleToSet = null;
+    // Generate AI title on the first Q&A exchange
+    if (!existingSession || !existingSession.title || existingSession.title === 'Plant Health Consultation' || (existingSession.messages && existingSession.messages.length <= 1)) {
+      if (sender === 'bot') {
+        const firstUserMsg = existingSession?.messages?.find((m) => m.sender === 'user')?.text || cleanText;
+        titleToSet = await generateTitleWithAI(firstUserMsg, cleanText, diseaseName);
+      } else if (sender === 'user') {
+        const shortPrompt = cleanText.length > 25 ? `${cleanText.slice(0, 25)}...` : cleanText;
+        titleToSet = diseaseName ? `${diseaseName} - ${shortPrompt}` : shortPrompt;
+      }
+    }
+
+    const setFields = {
+      lastMessageAt: new Date(),
+      detectedDisease: diseaseName,
+    };
+
+    const setOnInsertFields = {
       userId,
       sessionId,
-      sender,
-      text: String(text).trim(),
-      detectedDisease: String(detectedDisease || '').trim(),
-      timestamp: new Date(),
-    });
+    };
+
+    if (titleToSet) {
+      setFields.title = titleToSet;
+    } else {
+      setOnInsertFields.title = diseaseName ? `${diseaseName} Consultation` : 'Plant Health Consultation';
+    }
+
+    await ChatSession.findOneAndUpdate(
+      { userId, sessionId },
+      {
+        $push: {
+          messages: {
+            sender,
+            text: cleanText,
+            timestamp: new Date(),
+          },
+        },
+        $set: setFields,
+        $setOnInsert: setOnInsertFields,
+      },
+      { upsert: true, returnDocument: 'after' }
+    );
   } catch (err) {
-    console.warn('Failed to save chat message to DB:', err.message);
+    console.warn('Failed to save chat message to ChatSession DB:', err.message);
   }
 };
 
@@ -89,6 +173,35 @@ Provide concise, practical, actionable agricultural advice answering the user's 
   return `Regarding **${disease}**: For the query "${userMessage}", ensure proper plant hygiene, apply copper-based fungicides if symptoms persist, and keep foliage dry with drip irrigation. Feel free to ask about specific cures, fruit impact, or preventive measures!`;
 };
 
+// Fetch chat sessions list (ChatGPT-style sidebar list)
+router.get('/sessions', requireAuth, async (req, res) => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const sessions = await ChatSession.find({ userId })
+      .select('sessionId title detectedDisease lastMessageAt messages')
+      .sort({ lastMessageAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      sessions: (sessions || []).map((s) => ({
+        sessionId: s.sessionId || '',
+        title: s.title || 'Plant Health Consultation',
+        detectedDisease: s.detectedDisease || '',
+        lastMessageAt: s.lastMessageAt || s.updatedAt || new Date(),
+        messageCount: Array.isArray(s.messages) ? s.messages.length : 0,
+      })),
+    });
+  } catch (error) {
+    console.error('Fetch sessions list error:', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to fetch sessions' });
+  }
+});
+
 // Fetch chat history for a specific session ID
 router.get('/history/:sessionId', requireAuth, async (req, res) => {
   try {
@@ -99,13 +212,25 @@ router.get('/history/:sessionId', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Session ID is required' });
     }
 
-    const messages = await ChatMessage.find({ userId, sessionId })
-      .sort({ timestamp: 1, createdAt: 1 })
-      .lean();
+    const session = await ChatSession.findOne({ userId, sessionId }).lean();
+    const rawMessages = session?.messages || [];
+
+    const deduplicatedHistory = [];
+    for (const m of rawMessages) {
+      if (deduplicatedHistory.length > 0) {
+        const prev = deduplicatedHistory[deduplicatedHistory.length - 1];
+        if (prev.sender === m.sender && prev.text === m.text) {
+          continue;
+        }
+      }
+      deduplicatedHistory.push(m);
+    }
 
     return res.status(200).json({
       success: true,
-      history: messages.map((m) => ({
+      title: session?.title || 'Plant Health Consultation',
+      detectedDisease: session?.detectedDisease || '',
+      history: deduplicatedHistory.map((m) => ({
         id: m._id,
         sender: m.sender,
         text: m.text,
@@ -133,6 +258,7 @@ router.post('/', requireAuth, async (req, res) => {
     await saveMessageToHistory(userId, resolvedSessionId, 'user', user_message, detected_disease);
 
     let botResponse = '';
+    let responseSource = 'rag';
 
     try {
       const upstream = await axios.post(
@@ -147,21 +273,25 @@ router.post('/', requireAuth, async (req, res) => {
 
       if (upstream.data?.bot_response) {
         botResponse = upstream.data.bot_response;
+        console.log('[CHAT SERVICE] ✅ Answer generated via Python FastAPI RAG Pipeline (ChromaDB)');
       }
     } catch (upstreamErr) {
-      console.warn('FastAPI chat service unavailable, utilizing AI advisor fallback:', upstreamErr.message);
+      console.warn('[CHAT SERVICE] ⚠️ FastAPI RAG service unavailable (http://127.0.0.1:8000):', upstreamErr.message);
     }
 
     if (!botResponse) {
+      responseSource = 'fallback';
+      console.log('[CHAT SERVICE] ⚡ Using fallback AI advisor engine (Gemini / NLP)');
       botResponse = await generateFallbackChatResponse(user_message, detected_disease);
     }
 
-    // Save bot response to history
+    // Save bot response to history & trigger AI title generation on first exchange
     await saveMessageToHistory(userId, resolvedSessionId, 'bot', botResponse, detected_disease);
 
     return res.status(200).json({
       success: true,
       bot_response: botResponse,
+      source: responseSource,
     });
   } catch (error) {
     console.error('Chat endpoint error:', error.message);

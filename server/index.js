@@ -19,12 +19,17 @@ const HTTPSTATUS = require("./configuration/http.config").HTTPSTATUS;
 const app = express();
 
 app.set("trust proxy", 1);
+
+// Relax rate limiter in development mode to avoid blocking auth and chat streams
 app.use(
   rateLimiter({
     windowMs: 15 * 60 * 1000,
-    max: 60,
+    max: process.env.NODE_ENV === 'production' ? 100 : 10000,
+    standardHeaders: true,
+    legacyHeaders: false,
   }),
 );
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
@@ -35,17 +40,7 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // In development, allow any local network origin (localhost, 127.0.0.1, 192.168.x.x, etc.)
-      if (!origin || process.env.NODE_ENV !== 'production') {
-        return callback(null, true);
-      }
-      const allowedOrigins = ["http://localhost:5173", "http://localhost:5174", process.env.CLIENT_URL].filter(Boolean);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(null, true);
-    },
+    origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie", "x-request-source"],

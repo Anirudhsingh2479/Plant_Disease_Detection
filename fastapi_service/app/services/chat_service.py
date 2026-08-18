@@ -84,7 +84,7 @@ def _chunk_text(text: str, chunk_size: int = 24) -> list[str]:
 
 
 def _sse_event(event: str, payload: dict[str, Any]) -> str:
-    return f"event: {event}\\ndata: {json.dumps(payload, ensure_ascii=False)}\\n\\n"
+    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
 async def generate_chat_events(

@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../redux/slices/authSlice';
 import SpaIcon from '@mui/icons-material/Spa';
-import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
+import LanguageSelector from '../common/LanguageSelector';
 
 const DashboardNavbar = () => {
   const navigate = useNavigate();
@@ -55,6 +55,9 @@ const DashboardNavbar = () => {
         </Box>
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {/* Language Switcher Dropdown */}
+          <LanguageSelector />
+
           <Button
             onClick={() => navigate('/profile')}
             startIcon={
