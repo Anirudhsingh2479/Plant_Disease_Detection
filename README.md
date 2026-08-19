@@ -307,6 +307,24 @@ The client application will be accessible at `http://localhost:5173`
 
 ## System Architecture & Flow
 
+<div align="center">
+
+### 🧠 Convolutional Neural Network (CNN) Model Architecture
+*End-to-end deep learning classification pipeline for plant leaf disease detection*
+
+![CNN Model Architecture](assets/model_diagram.jpg)
+
+<br />
+
+### 🤖 RAG AI Agronomist Chatbot Pipeline Architecture
+*Retrieval-Augmented Generation flow connecting ChromaDB vector search, Google Gemini LLM, and real-time SSE streaming*
+
+![RAG Pipeline Architecture](assets/rag_pipeline_diagram.jpg)
+
+</div>
+
+<br />
+
 ```
 +------------------+         HTTP Multipart         +------------------+
 |                  | -----------------------------> |                  |
