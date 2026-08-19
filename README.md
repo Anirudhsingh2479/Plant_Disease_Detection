@@ -159,13 +159,7 @@ This project leverages modern technologies across full-stack web development and
 
 ### 🎥 Video Demo
 
-<div align="center">
-  <a href="assets/demo_video.mov">
-    <img src="assets/dashboard.png" alt="AgriVision Demo Video" width="85%" style="border-radius: 8px;" />
-    <br /><br />
-    <strong style="font-size: 1.1rem;">▶️ Click to Watch / Download Video Demo (assets/demo_video.mov)</strong>
-  </a>
-</div>
+https://github.com/Anirudhsingh2479/Plant_Disease_Detection/raw/latest-code/assets/demo_video.mp4
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
