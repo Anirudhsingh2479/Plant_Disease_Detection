@@ -11,7 +11,7 @@
     <img src="assets/logo.png" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">AgriVision - Plant Disease Detection & AI Agronomist Platform © 2026</h3>
+<h3 align="center">KrishiMitra - Plant Disease Detection & AI Agronomist Platform © 2026</h3>
   <p align="center">
     An AI-powered full-stack platform for instant plant disease diagnosis, RAG-based smart agronomist assistance, and crop health tracking.
     <br /><br />
