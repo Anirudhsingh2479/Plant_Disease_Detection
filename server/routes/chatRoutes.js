@@ -111,10 +111,10 @@ const saveMessageToHistory = async (userId, sessionId, sender, text, detectedDis
   }
 };
 
-const generateFallbackChatResponse = async (userMessage, detectedDisease) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  const msgLower = String(userMessage || '').toLowerCase();
-  const disease = detectedDisease || 'Plant Disease Care';
+async function generateFallbackChatResponse(userMessage, diseaseName, targetLanguage = 'English') {
+  const disease = diseaseName || 'Crop Health';
+  const apiKey = process.env.GOOGLE_API_KEY;
+  const msgLower = (userMessage || '').toLowerCase();
 
   if (apiKey) {
     const modelsToTry = [
@@ -129,6 +129,7 @@ const generateFallbackChatResponse = async (userMessage, detectedDisease) => {
         const prompt = `You are KrishiMitra AI, a professional agricultural scientist and plant pathologist assistant. 
 Context: User is asking about plant health. Detected Disease Context: "${disease}".
 User Question: "${userMessage}".
+CRITICAL REQUIREMENT: Respond completely in ${targetLanguage}.
 Provide concise, practical, actionable agricultural advice answering the user's specific question directly. Use bullet points and clear formatting.`;
 
         const response = await axios.post(
@@ -170,8 +171,8 @@ Provide concise, practical, actionable agricultural advice answering the user's 
     return `### Common symptoms of ${disease}:\n* Concentric dark brown "target-like" rings on mature leaves.\n* Yellow halos surrounding leaf spots.\n* Yellowing and drooping of lower foliage.`;
   }
 
-  return `Regarding **${disease}**: For the query "${userMessage}", ensure proper plant hygiene, apply copper-based fungicides if symptoms persist, and keep foliage dry with drip irrigation. Feel free to ask about specific cures, fruit impact, or preventive measures!`;
-};
+  return `### Information for ${disease}:\n* Keep foliage dry and irrigate early in the morning.\n* Monitor leaves daily for brown or black leaf spot lesions.\n* Apply protective copper fungicide at the first sign of leaf spots.`;
+}
 
 // Fetch chat sessions list (ChatGPT-style sidebar list)
 router.get('/sessions', requireAuth, async (req, res) => {
@@ -245,7 +246,7 @@ router.get('/history/:sessionId', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { user_message, detected_disease, session_id } = req.body || {};
+    const { user_message, detected_disease, session_id, language } = req.body || {};
 
     if (!user_message || !String(user_message).trim()) {
       return res.status(400).json({ success: false, message: 'user_message is required' });
@@ -253,6 +254,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     const userId = getAuthenticatedUserId(req);
     const resolvedSessionId = session_id || `user_${userId || 'anonymous'}`;
+    const targetLanguage = language || 'English';
 
     // Save user message to history
     await saveMessageToHistory(userId, resolvedSessionId, 'user', user_message, detected_disease);
@@ -267,6 +269,7 @@ router.post('/', requireAuth, async (req, res) => {
           user_message: String(user_message),
           detected_disease: detected_disease || null,
           session_id: String(resolvedSessionId),
+          language: targetLanguage,
         },
         { timeout: FASTAPI_TIMEOUT_MS }
       );
@@ -282,7 +285,7 @@ router.post('/', requireAuth, async (req, res) => {
     if (!botResponse) {
       responseSource = 'fallback';
       console.log('[CHAT SERVICE] ⚡ Using fallback AI advisor engine (Gemini / NLP)');
-      botResponse = await generateFallbackChatResponse(user_message, detected_disease);
+      botResponse = await generateFallbackChatResponse(user_message, detected_disease, targetLanguage);
     }
 
     // Save bot response to history & trigger AI title generation on first exchange
@@ -300,7 +303,7 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 router.get('/stream', requireAuth, async (req, res) => {
-  const { user_message, detected_disease, session_id } = req.query || {};
+  const { user_message, detected_disease, session_id, language } = req.query || {};
 
   if (!user_message || !String(user_message).trim()) {
     return res.status(400).json({ success: false, message: 'user_message is required' });
@@ -308,6 +311,7 @@ router.get('/stream', requireAuth, async (req, res) => {
 
   const userId = getAuthenticatedUserId(req);
   const resolvedSessionId = session_id || `user_${userId || 'anonymous'}`;
+  const targetLanguage = language || 'English';
 
   // Save user message
   await saveMessageToHistory(userId, resolvedSessionId, 'user', user_message, detected_disease);
@@ -332,6 +336,7 @@ router.get('/stream', requireAuth, async (req, res) => {
         user_message: String(user_message),
         detected_disease: detected_disease || '',
         session_id: String(resolvedSessionId),
+        language: targetLanguage,
       },
       responseType: 'stream',
       timeout: STREAM_TIMEOUT_MS,

@@ -228,6 +228,9 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
         });
       };
 
+      const langMap = { en: "English", hi: "Hindi", es: "Spanish" };
+      const selectedLanguage = langMap[i18n.language] || "English";
+
       const fallbackToStandardChat = async () => {
         if (fallbackStarted || streamDone) return;
         fallbackStarted = true;
@@ -236,6 +239,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
             user_message: userText,
             detected_disease: detectedDisease || null,
             session_id: resolvedSessionId,
+            language: selectedLanguage,
           });
 
           const botText = response?.data?.bot_response;
@@ -259,6 +263,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
         user_message: userText,
         detected_disease: detectedDisease || "",
         session_id: resolvedSessionId,
+        language: selectedLanguage,
       });
 
       const eventSource = new EventSource(`${import.meta.env.VITE_API_BASE_URL}/chat/stream?${params.toString()}`, {
