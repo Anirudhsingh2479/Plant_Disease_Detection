@@ -64,12 +64,8 @@ const saveMessageToHistory = async (userId, sessionId, sender, text, detectedDis
     }
 
     let titleToSet = null;
-    // Generate AI title on the first Q&A exchange
     if (!existingSession || !existingSession.title || existingSession.title === 'Plant Health Consultation' || (existingSession.messages && existingSession.messages.length <= 1)) {
-      if (sender === 'bot') {
-        const firstUserMsg = existingSession?.messages?.find((m) => m.sender === 'user')?.text || cleanText;
-        titleToSet = await generateTitleWithAI(firstUserMsg, cleanText, diseaseName);
-      } else if (sender === 'user') {
+      if (sender === 'user') {
         const shortPrompt = cleanText.length > 25 ? `${cleanText.slice(0, 25)}...` : cleanText;
         titleToSet = diseaseName ? `${diseaseName} - ${shortPrompt}` : shortPrompt;
       }
@@ -104,8 +100,20 @@ const saveMessageToHistory = async (userId, sessionId, sender, text, detectedDis
         $set: setFields,
         $setOnInsert: setOnInsertFields,
       },
-      { upsert: true, returnDocument: 'after' }
+      { upsert: true, new: true }
     );
+
+    // Non-blocking AI 1-line title generation on first exchange
+    if (sender === 'bot' && existingSession && (!existingSession.title || existingSession.title === 'Plant Health Consultation' || existingSession.title.includes('Consultation'))) {
+      const firstUserMsg = existingSession.messages?.find((m) => m.sender === 'user')?.text || cleanText;
+      generateTitleWithAI(firstUserMsg, cleanText, diseaseName)
+        .then((aiTitle) => {
+          if (aiTitle && aiTitle.length > 3) {
+            ChatSession.updateOne({ userId, sessionId }, { $set: { title: aiTitle } }).exec();
+          }
+        })
+        .catch(() => {});
+    }
   } catch (err) {
     console.warn('Failed to save chat message to ChatSession DB:', err.message);
   }
@@ -367,9 +375,9 @@ router.get('/stream', requireAuth, async (req, res) => {
       }
     });
 
-    upstreamStream.on('end', async () => {
-      await finalizeAndSave(fullBotResponse);
+    upstreamStream.on('end', () => {
       res.end();
+      finalizeAndSave(fullBotResponse).catch((err) => console.warn('Background message save warning:', err.message));
     });
 
     upstreamStream.on('error', async () => {
