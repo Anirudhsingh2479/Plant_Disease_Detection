@@ -1,0 +1,11 @@
+# Assets Directory for README Screenshots & Media
+Place project images and video files here to render them in README.md:
+- logo.png
+- dashboard.png
+- chatbot.png
+- history.png
+- profile.png
+- fastapi_service.png
+- model_diagram.jpg
+- rag_pipeline_diagram.jpg
+- demo_video.mp4 (or demo.gif)

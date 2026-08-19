@@ -157,9 +157,13 @@ This project leverages modern technologies across full-stack web development and
 
 </div>
 
-### Video Demo
+### 🎥 Video Demo
 
-[![AgriVision Video Demo](https://img.youtube.com/vi/your_video_id/maxresdefault.jpg)](https://youtu.be/your_video_id)
+<div align="center">
+  <video src="assets/demo_video.mp4" controls width="100%" style="max-width: 850px; border-radius: 8px;">
+    Your browser does not support playing HTML5 video. You can view the video file directly at <a href="assets/demo_video.mp4">assets/demo_video.mp4</a>.
+  </video>
+</div>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
