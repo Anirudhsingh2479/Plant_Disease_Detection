@@ -6,14 +6,14 @@ const ChatSession = require('../models/ChatSession');
 const router = express.Router();
 
 const FASTAPI_URL = process.env.FASTAPI_URL || 'http://127.0.0.1:8000';
-const FASTAPI_TIMEOUT_MS = Number(process.env.FASTAPI_TIMEOUT_MS || 15000);
-const STREAM_TIMEOUT_MS = Number(process.env.CHAT_STREAM_TIMEOUT_MS || 30000);
+const FASTAPI_TIMEOUT_MS = Number(process.env.FASTAPI_TIMEOUT_MS || 45000);
+const STREAM_TIMEOUT_MS = Number(process.env.CHAT_STREAM_TIMEOUT_MS || 60000);
 
 const getAuthenticatedUserId = (req) => req.user?.userId || req.user?._id;
 
 // AI 1-line title generator (3-6 words, unique)
 const generateTitleWithAI = async (userPrompt, botResponse, detectedDisease) => {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const cleanPrompt = String(userPrompt || '').trim();
 
   if (!cleanPrompt) return 'Plant Health Consultation';
@@ -26,9 +26,9 @@ User Question: "${cleanPrompt}"
 Title:`;
 
       const res = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
         { contents: [{ parts: [{ text: promptText }] }] },
-        { timeout: 5000 }
+        { timeout: 8000 }
       );
 
       const candidate = res.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
@@ -118,10 +118,10 @@ async function generateFallbackChatResponse(userMessage, diseaseName, targetLang
 
   if (apiKey) {
     const modelsToTry = [
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
       'gemini-flash-latest',
-      'gemini-2.5-flash-lite',
-      'gemini-3.5-flash',
-      'gemini-3.7-flash',
     ];
 
     for (const model of modelsToTry) {

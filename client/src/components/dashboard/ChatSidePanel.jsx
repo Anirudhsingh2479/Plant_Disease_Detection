@@ -214,6 +214,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
       setMessages((prev) => [...prev, { sender: "bot", text: "" }]);
       let streamDone = false;
       let fallbackStarted = false;
+      let hasReceivedTokens = false;
 
       const applyBotText = (text) => {
         setMessages((prev) => {
@@ -232,7 +233,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
       const selectedLanguage = langMap[i18n.language] || "English";
 
       const fallbackToStandardChat = async () => {
-        if (fallbackStarted || streamDone) return;
+        if (fallbackStarted || streamDone || hasReceivedTokens) return;
         fallbackStarted = true;
         try {
           const response = await axiosInstance.post("/chat", {
@@ -278,6 +279,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
           const token = payload?.text || "";
 
           if (!token) return;
+          hasReceivedTokens = true;
 
           setMessages((prev) => {
             if (!prev.length) return prev;
@@ -303,7 +305,13 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
       });
 
       eventSource.addEventListener("error", async (event) => {
-        if (streamDone) return;
+        if (streamDone || hasReceivedTokens) {
+          streamDone = true;
+          setIsLoading(false);
+          eventSource.close();
+          eventSourceRef.current = null;
+          return;
+        }
 
         if (event?.data) {
           try {
