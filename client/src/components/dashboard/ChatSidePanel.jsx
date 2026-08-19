@@ -122,8 +122,10 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
 
           if (isMounted) {
             setSessionTitle(title);
-            if (sessionDisease !== undefined) {
-              setCurrentDisease(sessionDisease);
+            if (sessionDisease && sessionDisease.trim()) {
+              setCurrentDisease(sessionDisease.trim());
+            } else if (detectedDisease && detectedDisease.trim()) {
+              setCurrentDisease(detectedDisease.trim());
             }
             if (history.length > 0) {
               setMessages(history.map((m) => ({ sender: m.sender, text: m.text })));
