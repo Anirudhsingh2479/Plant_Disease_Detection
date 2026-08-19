@@ -15,7 +15,7 @@
   <p align="center">
     An AI-powered full-stack platform for instant plant disease diagnosis, RAG-based smart agronomist assistance, and crop health tracking.
     <br /><br />
-    <a href="https://your-demo-url.com/"><strong>View Demo »</strong></a>
+    <a href="#-video-demo"><strong>Watch Video Demo »</strong></a>
     <br />
     <a href="https://github.com/Anirudhsingh2479/Plant_Disease_Detection/issues">Report Bug</a>
     ·
