@@ -165,6 +165,7 @@ def initialize_chatbot(settings: Settings = SETTINGS) -> None:
 
         embeddings = HuggingFaceEmbeddings(
             model_name=settings.chatbot_embedding_model,
+            model_kwargs={"device": "cpu", "local_files_only": True},
         )
 
         vectorstore_path = _build_vectorstore_path(settings)

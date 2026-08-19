@@ -27,11 +27,12 @@ import axiosInstance from "../../api/axiosInstance";
 import FormattedMarkdownText from "../chat/FormattedMarkdownText";
 
 const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionId }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const chatEndRef = useRef(null);
   
   const [activeSessionId, setActiveSessionId] = useState(propSessionId || "");
   const [sessionTitle, setSessionTitle] = useState("");
+  const [currentDisease, setCurrentDisease] = useState(detectedDisease || "");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -41,11 +42,16 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
   const [loadingSessions, setLoadingSessions] = useState(false);
   const eventSourceRef = useRef(null);
 
-  // Sync propSessionId to activeSessionId when drawer opens or prop changes
+  // Sync propSessionId and detectedDisease when drawer opens or props change
   useEffect(() => {
     setActiveSessionId(propSessionId || "");
+    if (propSessionId && propSessionId.startsWith("general_")) {
+      setCurrentDisease("");
+    } else {
+      setCurrentDisease(detectedDisease || "");
+    }
     setShowSessionsList(false);
-  }, [propSessionId, open]);
+  }, [propSessionId, detectedDisease, open]);
 
   // Fetch past sessions list for history sidebar view
   const fetchPastSessions = async () => {
@@ -76,9 +82,10 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
   };
 
   const handleStartNewChat = () => {
-    const newId = `general_${Date.now()}`;
-    setActiveSessionId(newId);
-    setSessionTitle("New Plant Consultation");
+    const newSessionId = `general_${Date.now()}`;
+    setActiveSessionId(newSessionId);
+    setSessionTitle("");
+    setCurrentDisease("");
     setMessages([
       {
         sender: "bot",
@@ -90,12 +97,17 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
     setShowSessionsList(false);
   };
 
+  const isSendingRef = useRef(false);
+
   // Fetch or initialize session-based chat history whenever activeSessionId changes
   useEffect(() => {
     let isMounted = true;
 
     const loadSessionChat = async () => {
       if (!open) return;
+
+      // Do not interrupt active chat sending or wipe messages during live conversation
+      if (isSendingRef.current) return;
 
       // Reset current messages to avoid showing previous state
       setMessages([]);
@@ -106,18 +118,22 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
           const response = await axiosInstance.get(`/chat/history/${encodeURIComponent(activeSessionId)}`);
           const history = response.data?.history || [];
           const title = response.data?.title || "";
+          const sessionDisease = response.data?.detectedDisease;
 
           if (isMounted) {
             setSessionTitle(title);
+            if (sessionDisease !== undefined) {
+              setCurrentDisease(sessionDisease);
+            }
             if (history.length > 0) {
               setMessages(history.map((m) => ({ sender: m.sender, text: m.text })));
-            } else if (detectedDisease) {
+            } else if (currentDisease) {
               setMessages([
                 {
                   sender: "bot",
                   text: t("chat.scan_greet", {
-                    disease: detectedDisease,
-                    defaultValue: `Hi! I can see the detected disease is **${detectedDisease}**. What would you like to know about treatment, precautions, or fruit impact?`,
+                    disease: currentDisease,
+                    defaultValue: `Hi! I can see the detected disease is **${currentDisease}**. What would you like to know about treatment, precautions, or fruit impact?`,
                   }),
                 },
               ]);
@@ -134,11 +150,11 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
           }
         } catch {
           if (isMounted) {
-            if (detectedDisease) {
+            if (currentDisease) {
               setMessages([
                 {
                   sender: "bot",
-                  text: `Hi! I can see the detected disease is **${detectedDisease}**. Ask me any question!`,
+                  text: `Hi! I can see the detected disease is **${currentDisease}**. Ask me any question!`,
                 },
               ]);
             } else {
@@ -155,26 +171,14 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
         }
       } else {
         setSessionTitle("");
-        if (detectedDisease) {
-          setMessages([
-            {
-              sender: "bot",
-              text: t("chat.scan_greet", {
-                disease: detectedDisease,
-                defaultValue: `Hi! I can see the detected disease is **${detectedDisease}**. What would you like to know?`,
-              }),
-            },
-          ]);
-        } else {
-          setMessages([
-            {
-              sender: "bot",
-              text: t("chat.general_greet", {
-                defaultValue: "Hi! I am your KrishiMitra AI plant disease assistant. How can I help you today?",
-              }),
-            },
-          ]);
-        }
+        setMessages([
+          {
+            sender: "bot",
+            text: t("chat.general_greet", {
+              defaultValue: "Hi! I am your KrishiMitra AI plant disease assistant. How can I help you today?",
+            }),
+          },
+        ]);
       }
     };
 
@@ -201,6 +205,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
   const handleSend = async () => {
     if (!input.trim()) return;
     const userText = input.trim();
+    isSendingRef.current = true;
     setMessages((prev) => [...prev, { sender: "user", text: userText }]);
     setInput("");
     setIsLoading(true);
@@ -238,7 +243,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
         try {
           const response = await axiosInstance.post("/chat", {
             user_message: userText,
-            detected_disease: detectedDisease || null,
+            detected_disease: currentDisease || null,
             session_id: resolvedSessionId,
             language: selectedLanguage,
           });
@@ -252,6 +257,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
         } catch {
           applyBotText("Sorry, I couldn't process that request. Please try again.");
         } finally {
+          isSendingRef.current = false;
           setIsLoading(false);
         }
       };
@@ -262,7 +268,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
 
       const params = new URLSearchParams({
         user_message: userText,
-        detected_disease: detectedDisease || "",
+        detected_disease: currentDisease || "",
         session_id: resolvedSessionId,
         language: selectedLanguage,
       });
@@ -299,6 +305,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
 
       eventSource.addEventListener("done", () => {
         streamDone = true;
+        isSendingRef.current = false;
         setIsLoading(false);
         eventSource.close();
         eventSourceRef.current = null;
@@ -307,6 +314,7 @@ const ChatSidePanel = ({ open, onClose, detectedDisease, sessionId: propSessionI
       eventSource.addEventListener("error", async (event) => {
         if (streamDone || hasReceivedTokens) {
           streamDone = true;
+          isSendingRef.current = false;
           setIsLoading(false);
           eventSource.close();
           eventSourceRef.current = null;

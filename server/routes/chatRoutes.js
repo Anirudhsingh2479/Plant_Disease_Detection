@@ -26,7 +26,7 @@ User Question: "${cleanPrompt}"
 Title:`;
 
       const res = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
         { contents: [{ parts: [{ text: promptText }] }] },
         { timeout: 8000 }
       );
@@ -126,10 +126,8 @@ async function generateFallbackChatResponse(userMessage, diseaseName, targetLang
 
   if (apiKey) {
     const modelsToTry = [
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-1.5-pro',
-      'gemini-flash-latest',
+      'gemini-3.6-flash',
+      'gemini-3.1-flash-lite',
     ];
 
     for (const model of modelsToTry) {
@@ -381,7 +379,7 @@ router.get('/stream', requireAuth, async (req, res) => {
     });
 
     upstreamStream.on('error', async () => {
-      const fallbackText = await generateFallbackChatResponse(user_message, detected_disease);
+      const fallbackText = await generateFallbackChatResponse(user_message, detected_disease, targetLanguage);
       await finalizeAndSave(fallbackText);
       res.write('event: token\n');
       res.write(`data: ${JSON.stringify({ text: fallbackText })}\n\n`);
@@ -392,7 +390,7 @@ router.get('/stream', requireAuth, async (req, res) => {
   } catch (error) {
     console.warn('FastAPI chat stream unavailable, streaming AI advisor fallback:', error.message);
     try {
-      const fallbackText = await generateFallbackChatResponse(user_message, detected_disease);
+      const fallbackText = await generateFallbackChatResponse(user_message, detected_disease, targetLanguage);
       await finalizeAndSave(fallbackText);
       
       const words = fallbackText.split(' ');
