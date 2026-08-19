@@ -160,9 +160,11 @@ This project leverages modern technologies across full-stack web development and
 ### 🎥 Video Demo
 
 <div align="center">
-  <video src="assets/demo_video.mov" controls width="100%" style="max-width: 850px; border-radius: 8px;">
-    Your browser does not support playing HTML5 video. You can view the video file directly at <a href="assets/demo_video.mov">assets/demo_video.mov</a>.
-  </video>
+  <a href="assets/demo_video.mov">
+    <img src="assets/dashboard.png" alt="AgriVision Demo Video" width="85%" style="border-radius: 8px;" />
+    <br /><br />
+    <strong style="font-size: 1.1rem;">▶️ Click to Watch / Download Video Demo (assets/demo_video.mov)</strong>
+  </a>
 </div>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
