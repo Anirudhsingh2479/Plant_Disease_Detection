@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Contributors](https://img.shields.io/github/contributors/Anirudhsingh2479/Plant_Disease_Detection.svg?style=for-the-badge)](https://github.com/Anirudhsingh2479/Plant_Disease_Detection/graphs/contributors)&nbsp;[![Forks](https://img.shields.io/github/forks/Anirudhsingh2479/Plant_Disease_Detection.svg?style=for-the-badge)](https://github.com/Anirudhsingh2479/Plant_Disease_Detection/network/members)&nbsp;[![Stargazers](https://img.shields.io/github/stars/Anirudhsingh2479/Plant_Disease_Detection.svg?style=for-the-badge)](https://github.com/Anirudhsingh2479/Plant_Disease_Detection/stargazers)&nbsp;[![Issues](https://img.shields.io/github/issues/Anirudhsingh2479/Plant_Disease_Detection.svg?style=for-the-badge)](https://github.com/Anirudhsingh2479/Plant_Disease_Detection/issues)&nbsp;[![MIT License](https://img.shields.io/github/license/Anirudhsingh2479/Plant_Disease_Detection.svg?style=for-the-badge)](https://github.com/Anirudhsingh2479/Plant_Disease_Detection/blob/main/LICENSE)&nbsp;
+[![Contributors](https://img.shields.io/github/contributors/Anirudhsingh2479/Plant_Disease_Detection.svg?style=for-the-badge)](https://github.com/Anirudhsingh2479/Plant_Disease_Detection/graphs/contributors)&nbsp;[![Forks](https://img.shields.io/github/forks/Anirudhsingh2479/Plant_Disease_Detection.svg?style=for-the-badge)](https://github.com/Anirudhsingh2479/Plant_Disease_Detection/network/members)&nbsp;[![Stargazers](https://img.shields.io/github/stars/Anirudhsingh2479/Plant_Disease_Detection.svg?style=for-the-badge)](https://github.com/Anirudhsingh2479/Plant_Disease_Detection/stargazers)&nbsp;[![Issues](https://img.shields.io/github/issues/Anirudhsingh2479/Plant_Disease_Detection.svg?style=for-the-badge)](https://github.com/Anirudhsingh2479/Plant_Disease_Detection/issues)&nbsp;[![MIT License](https://img.shields.io/github/license/Anirudhsingh2479/Plant_Disease_Detection.svg?style=for-the-badge)](https://github.com/Anirudhsingh2479/Plant_Disease_Detection/blob/main/LICENSE)&nbsp;[![Live Demo](https://img.shields.io/badge/Live_Demo-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://predict-plant-disease-client.onrender.com/dashboard)&nbsp;
 
 </div>
 <br />
@@ -15,6 +15,8 @@
   <p align="center">
     An AI-powered full-stack platform for instant plant disease diagnosis, RAG-based smart agronomist assistance, and crop health tracking.
     <br /><br />
+    <a href="https://predict-plant-disease-client.onrender.com/dashboard"><strong>🌐 Live Demo Dashboard »</strong></a>
+    &nbsp;·&nbsp;
     <a href="#-video-demo"><strong>Watch Video Demo »</strong></a>
     <br />
     <a href="https://github.com/Anirudhsingh2479/Plant_Disease_Detection/issues">Report Bug</a>
@@ -33,7 +35,14 @@
       </ul>
     </li>
     <li><a href="#-key-features">Key Features</a></li>
-    <li><a href="#-screenshots--demo">Screenshots & Demo</a></li>
+    <li>
+      <a href="#-screenshots--demo">Screenshots & Demo</a>
+      <ul>
+        <li><a href="#-live-demo">Live Demo</a></li>
+        <li><a href="#screenshots">Screenshots</a></li>
+        <li><a href="#-video-demo">Video Demo</a></li>
+      </ul>
+    </li>
     <li>
       <a href="#getting-started">Getting Started</a>
       <ul>
@@ -51,6 +60,8 @@
 </details>
 
 ---
+
+> 🌐 **Live Application**: The platform is live and running at **[predict-plant-disease-client.onrender.com/dashboard](https://predict-plant-disease-client.onrender.com/dashboard)**.
 
 ## About The Project
 
@@ -126,6 +137,12 @@ This project leverages modern technologies across full-stack web development and
 
 ## 📸 Screenshots & Demo
 
+### 🌐 Live Demo
+Experience KrishiMitra live directly in your browser:
+* **Deployed Web Application**: [https://predict-plant-disease-client.onrender.com/dashboard](https://predict-plant-disease-client.onrender.com/dashboard)
+
+---
+
 ### Screenshots
 
 <div align="center">
@@ -159,7 +176,7 @@ This project leverages modern technologies across full-stack web development and
 
 ### 🎥 Video Demo
 
-https://github.com/Anirudhsingh2479/Plant_Disease_Detection/raw/latest-code/assets/demo_video.mp4
+https://github.com/Anirudhsingh2479/Plant_Disease_Detection/raw/main/assets/demo_video.mp4
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
